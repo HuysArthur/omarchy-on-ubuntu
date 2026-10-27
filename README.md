@@ -71,3 +71,9 @@ Omarchy features that need Arch: system updates through pacman/AUR (`omarchy-upd
 bootloader/plymouth/hibernation setup, snapper snapshots, factory reset, DNS presets, sudoless Docker.
 Some apps Omarchy preinstalls aren't in Ubuntu's archive (hyprsunset night light, gpu-screen-recorder,
 tensaku, localsend, Obsidian); their menu entries won't work until you install them yourself.
+
+## License
+
+The scripts and configs in this repo are MIT (see `LICENSE`). The `.deb` contains Hyprland and its hyprwm
+libraries (BSD-3-Clause) and Quickshell (LGPL-3.0), built unmodified from the sources pinned in
+`build/versions.env`. Omarchy (MIT) is downloaded by `install.sh`, not included here.
