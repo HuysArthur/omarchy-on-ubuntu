@@ -47,8 +47,8 @@ git clone https://github.com/HuysArthur/omarchy-on-ubuntu && cd omarchy-on-ubunt
 
 Then log out and pick "Hyprland (Omarchy)". Super+K shows all keybindings, Super+Space opens the menu.
 
-Publishing the build so other machines skip compiling (the download needs a public repo; for a private one,
-copy the `.deb` over or fetch it with `gh release download`):
+Publishing the build so other machines skip compiling (for a private repo, install `gh` and run
+`gh auth login` on the machine first; `install.sh` then downloads through it):
 
 ```bash
 v=0.56.2-1   # HYPRLAND_TAG without the v, then PKG_REVISION

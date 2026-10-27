@@ -69,9 +69,13 @@ if [[ -z $DEB ]]; then
   DEB=$REPO/dist/hyprland-opt_${pkg_version}_ubuntu26.04_amd64.deb
   say "Downloading hyprland-opt $pkg_version from github.com/$slug"
   mkdir -p "$REPO/dist"
-  curl -fL --progress-bar -o "$DEB.part" \
-    "https://github.com/$slug/releases/download/hyprland-opt-$pkg_version/$(basename "$DEB")" \
-    || die "Download failed. Build it with ./build.sh, or copy the .deb over and pass its path."
+  # Private repos need a logged-in gh; public ones download anonymously.
+  if command -v gh >/dev/null && gh auth status >/dev/null 2>&1; then
+    gh release download "hyprland-opt-$pkg_version" -R "$slug" -p "$(basename "$DEB")" -O "$DEB.part" --clobber
+  else
+    curl -fL --progress-bar -o "$DEB.part" \
+      "https://github.com/$slug/releases/download/hyprland-opt-$pkg_version/$(basename "$DEB")"
+  fi || die "Download failed (private repo? install gh and run gh auth login). Or build with ./build.sh, or copy the .deb over and pass its path."
   mv "$DEB.part" "$DEB"
 fi
 [[ -f $DEB ]] || die "$DEB not found."
