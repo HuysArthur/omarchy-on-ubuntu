@@ -1,6 +1,7 @@
-# omarchy-ubuntu
+# omarchy-on-ubuntu
 
 [Omarchy](https://omarchy.org)'s Hyprland desktop on Ubuntu 26.04, as an extra login session next to GNOME.
+Unofficial: not affiliated with Basecamp or the Omarchy project.
 
 - **Hyprland 0.56.2 + Quickshell 0.3.2**, compiled once into a self-contained `.deb` under `/opt/hyprland`
   (no conflicts with Ubuntu's packages).
@@ -39,7 +40,7 @@ tag's `flake.lock`.
 ## Install (every machine)
 
 ```bash
-git clone https://github.com/<you>/omarchy-ubuntu && cd omarchy-ubuntu
+git clone https://github.com/HuysArthur/omarchy-on-ubuntu && cd omarchy-on-ubuntu
 ./install.sh                          # newest .deb in dist/, else downloads it from this repo's release
 ./install.sh /path/to/hyprland-opt_0.56.2-1~ubuntu26.04_amd64.deb
 ```
