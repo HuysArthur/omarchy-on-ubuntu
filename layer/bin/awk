@@ -1,0 +1,3 @@
+#!/bin/sh
+# Omarchy's scripts are written for GNU awk (Arch's awk); Ubuntu's default awk is mawk.
+exec gawk "$@"

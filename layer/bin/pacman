@@ -1,0 +1,45 @@
+#!/bin/bash
+# Read-only pacman stand-in for Omarchy on Ubuntu: answers package queries from dpkg
+# so Omarchy's "is X installed?" checks work. Anything that would change packages is refused.
+
+installed() { dpkg-query -W -f='${db:Status-Abbrev} ${Package}\n' 2>/dev/null | awk '$1 ~ /^ii/ {print $2}'; }
+
+has() {
+  local name=${1%%[<>=]*}
+  dpkg-query -W -f='${db:Status-Abbrev}' "$name" 2>/dev/null | grep -q '^ii' || command -v "$name" >/dev/null 2>&1
+}
+
+op=${1:-}
+shift || true
+args=()
+for a in "$@"; do [[ $a == -* ]] || args+=("$a"); done
+
+case $op in
+  -Qq)
+    if ((${#args[@]})); then for p in "${args[@]}"; do has "$p" && echo "${p%%[<>=]*}" || exit 1; done; else installed; fi
+    ;;
+  -Q)
+    if ((${#args[@]})); then
+      for p in "${args[@]}"; do
+        has "$p" || { echo "error: package '$p' was not found" >&2; exit 1; }
+        printf '%s %s\n' "${p%%[<>=]*}" "$(dpkg-query -W -f='${Version}' "${p%%[<>=]*}" 2>/dev/null || echo ubuntu)"
+      done
+    else
+      dpkg-query -W -f='${db:Status-Abbrev} ${Package} ${Version}\n' | awk '$1 ~ /^ii/ {print $2, $3}'
+    fi
+    ;;
+  -Qi)
+    for p in "${args[@]}"; do
+      has "$p" || continue
+      printf 'Name            : %s\nProvides        : None\n\n' "${p%%[<>=]*}"
+    done
+    ;;
+  -Q*)
+    exit 1
+    ;;
+  *)
+    echo "pacman is not available on Ubuntu. Use apt instead." >&2
+    command -v notify-send >/dev/null && notify-send -u low "Not available on Ubuntu" "Omarchy tried to run: pacman $op $*"
+    exit 1
+    ;;
+esac

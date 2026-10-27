@@ -1,0 +1,6 @@
+#!/bin/bash
+# Stand-in for Omarchy commands that only make sense on Arch (bootloader, pacman/AUR, snapshots, factory reset).
+name=$(basename "$0")
+echo "$name is not available on Ubuntu." >&2
+notify-send -u low "Not available on Ubuntu" "$name is Arch-specific and was skipped." 2>/dev/null
+exit 1

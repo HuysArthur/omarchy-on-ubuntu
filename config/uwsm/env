@@ -1,0 +1,12 @@
+# Environment for the "Hyprland (Omarchy)" session, sourced by uwsm at login.
+# Changes require logging out and back in.
+
+export OMARCHY_PATH="$HOME/.local/share/omarchy"
+export PATH="$HOME/.local/share/omarchy-ubuntu/bin:/opt/hyprland/bin:$OMARCHY_PATH/bin:$PATH:$HOME/.local/bin"
+
+# Separate GNOME settings database for this session, so Omarchy's theme/dark-mode/font
+# changes never reach the regular Ubuntu (GNOME) session. Stored in ~/.config/dconf/hyprland.
+export DCONF_PROFILE="$HOME/.config/dconf/hyprland.profile"
+
+[ -f "$OMARCHY_PATH/default/uwsm/default" ] && . "$OMARCHY_PATH/default/uwsm/default"
+[ -f "$HOME/.config/uwsm/default" ] && . "$HOME/.config/uwsm/default"

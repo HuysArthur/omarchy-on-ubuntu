@@ -1,0 +1,11 @@
+#!/bin/bash
+# Ubuntu replacement for Omarchy's pacman/AUR update. Omarchy itself stays pinned; see omarchy-ubuntu's README.
+if [[ ! -t 1 ]]; then
+  exec omarchy-launch-floating-terminal-with-presentation omarchy-update "$@"
+fi
+set -e
+sudo apt update
+if [[ ${1:-} == -y ]]; then sudo apt full-upgrade -y; else sudo apt full-upgrade; fi
+command -v flatpak >/dev/null && flatpak update -y || true
+echo
+read -n 1 -s -r -p "Done. Press any key to close."

@@ -1,0 +1,10 @@
+#!/bin/bash
+# Installs with apt instead of pacman. Arch and Ubuntu names often match; when they don't, apt says so.
+missing=()
+for p in "$@"; do pacman -Qq "$p" >/dev/null 2>&1 || missing+=("$p"); done
+((${#missing[@]})) || exit 0
+if ((EUID == 0)); then
+  apt-get install -y -- "${missing[@]}"
+else
+  sudo apt-get install -y -- "${missing[@]}"
+fi

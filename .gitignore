@@ -1,0 +1,5 @@
+.cache/
+dist/
+.build.log
+# Runtime cache Omarchy's shell drops in its working directory.
+omarchy/
