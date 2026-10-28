@@ -10,3 +10,9 @@ export DCONF_PROFILE="$HOME/.config/dconf/hyprland.profile"
 
 [ -f "$OMARCHY_PATH/default/uwsm/default" ] && . "$OMARCHY_PATH/default/uwsm/default"
 [ -f "$HOME/.config/uwsm/default" ] && . "$HOME/.config/uwsm/default"
+
+# uwsm exports the XDG base-dir vars (with their default values) to the whole session.
+# Snaps only remap $HOME into ~/snap/<app>, so an explicit XDG_CONFIG_HOME=~/.config makes
+# snaps like Slack and Firefox write to the real ~/.config, which AppArmor denies and the
+# app exits without a window. Unset, everything falls back to the same defaults anyway.
+unset XDG_CONFIG_HOME XDG_DATA_HOME XDG_CACHE_HOME XDG_STATE_HOME
