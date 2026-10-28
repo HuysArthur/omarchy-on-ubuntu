@@ -22,6 +22,8 @@ Unofficial: not affiliated with Basecamp or the Omarchy project.
   so Omarchy's dark mode, icons and fonts never change GNOME.
 - Theme switching does not rewrite VS Code, Claude Code, Obsidian or browser policies (shared with GNOME).
 - Omarchy's XDG autostart entries are not installed (GNOME would run them too).
+- The only file outside your home and `/opt/hyprland` is `/etc/pam.d/omarchy-lock-password`, the PAM
+  stack Omarchy's lock screen authenticates against (GNOME doesn't read it).
 - `install.sh` only creates config files you don't have yet, except `~/.config/hypr/hyprland.lua` and
   `~/.config/uwsm/env`; anything it replaces is backed up to `~/.local/state/omarchy-ubuntu/backup/`.
 
