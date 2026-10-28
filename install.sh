@@ -160,6 +160,22 @@ for f in uwsm/env hypr/hyprland.lua dconf/hyprland.profile; do
   manage "$C/$f"
 done
 
+# Lock screen: Omarchy's Quickshell lock reads this PAM stack and won't lock at all without it.
+sudo install -m 0644 -o root -g root "$REPO/config/pam.d/omarchy-lock-password" /etc/pam.d/omarchy-lock-password
+manage /etc/pam.d/omarchy-lock-password
+
+# Lock before suspend (lid close). Omarchy's unit points at /usr/bin, where Arch packages the script.
+tmp=$(mktemp)
+sed 's|^ExecStart=.*|ExecStart=%h/.local/share/omarchy/bin/omarchy-system-sleep-monitor|' \
+  "$OMARCHY_PATH/default/systemd/user/omarchy-sleep-lock.service" >"$tmp"
+put "$tmp" "$C/systemd/user/omarchy-sleep-lock.service"
+manage "$C/systemd/user/omarchy-sleep-lock.service"
+rm -f "$tmp"
+# Only starts in the Hyprland session: the unit requires OMARCHY_PATH, which GNOME doesn't set.
+systemctl --user daemon-reload
+systemctl --user enable --now omarchy-sleep-lock.service
+manage "$C/systemd/user/graphical-session.target.wants/omarchy-sleep-lock.service"
+
 # Start the Hyprland session's settings from a copy of the GNOME ones (fonts, keyboard, app prefs).
 if [[ ! -e $C/dconf/hyprland && -f $C/dconf/user ]]; then
   cp "$C/dconf/user" "$C/dconf/hyprland"
