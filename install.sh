@@ -230,6 +230,10 @@ while IFS= read -r -d '' src; do
 done < <(find "$OMARCHY_PATH/config/ghostty" "$OMARCHY_PATH/config/btop" "$OMARCHY_PATH/config/omarchy" \
   "$OMARCHY_PATH/config/imv" "$OMARCHY_PATH/config/lazygit" -type f -print0)
 
+# Screensaver and About text, as Omarchy's own installer seeds them.
+put "$OMARCHY_PATH/logo.txt" "$C/omarchy/branding/screensaver.txt" --if-missing
+put "$OMARCHY_PATH/icon.txt" "$C/omarchy/branding/about.txt" --if-missing
+
 # Portal choice (screen sharing, file pickers) for the Hyprland session; only read when the desktop is Hyprland.
 put /opt/hyprland/share/xdg-desktop-portal/hyprland-portals.conf "$C/xdg-desktop-portal/hyprland-portals.conf" --if-missing
 
