@@ -68,6 +68,12 @@ Omarchy's **Update > Channel** menu switches this checkout between `main` and an
 - **Stable** goes back to `main` (pulling the latest) and re-runs `install.sh`, which removes whatever the
   pull request installed and restores anything it had replaced.
 
+**Update > Omarchy** (`omarchy-update`) runs the apt upgrade and then brings this checkout up to date on its
+channel: on Stable it pulls `main`, on a pull request it pulls the branch, and a pull request that has
+been merged or closed goes back to Stable. `install.sh` only re-runs when that changed something. It stops
+early with a message if `build/versions.env` names a Hyprland package that is neither in `dist/` nor in a
+release yet, so the one thing that needs a manual step is publishing a rebuilt package.
+
 The checkout must have no uncommitted changes. Changes to the session environment (`config/uwsm/env`)
 apply after logging out and back in. From a terminal: `omarchy-channel-set stable` or
 `omarchy-channel-set pr 12`.
