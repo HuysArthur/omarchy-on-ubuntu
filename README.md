@@ -50,14 +50,13 @@ git clone https://github.com/HuysArthur/omarchy-on-ubuntu && cd omarchy-on-ubunt
 
 Then log out and pick "Hyprland (Omarchy)". Super+K shows all keybindings, Super+Space opens the menu.
 
-Publishing the build so other machines skip compiling (for a private repo, install `gh` and run
-`gh auth login` on the machine first; `install.sh` then downloads through it):
-
-```bash
-v=0.56.2-1   # HYPRLAND_TAG without the v, then PKG_REVISION
-cp dist/hyprland-opt_${v}~ubuntu26.04_amd64.deb /tmp/hyprland-opt_${v}_ubuntu26.04_amd64.deb
-gh release create hyprland-opt-$v /tmp/hyprland-opt_${v}_ubuntu26.04_amd64.deb --title "hyprland-opt $v"
-```
+Other machines don't compile: the **Package** workflow (`.github/workflows/package.yml`) builds the `.deb`
+on GitHub whenever a push changes `build/`, and publishes it as release `hyprland-opt-<version>`, which
+`install.sh` downloads (a private repo needs `gh auth login` on the machine). A branch gets a pre-release;
+when the same `build/` reaches `main` it becomes the latest release without building again. Changing
+`build/` means bumping `PKG_REVISION` in `build/versions.env`: a branch that changes `build/` again
+rebuilds its pre-release, but a version already released from `main` is never rebuilt, and the workflow
+fails instead.
 
 ## Trying a pull request
 
@@ -70,9 +69,9 @@ Omarchy's **Update > Channel** menu switches this checkout between `main` and an
 
 **Update > Omarchy** (`omarchy-update`) runs the apt upgrade and then brings this checkout up to date on its
 channel: on Stable it pulls `main`, on a pull request it pulls the branch, and a pull request that has
-been merged or closed goes back to Stable. `install.sh` only re-runs when that changed something. It stops
-early with a message if `build/versions.env` names a Hyprland package that is neither in `dist/` nor in a
-release yet, so the one thing that needs a manual step is publishing a rebuilt package.
+been merged or closed goes back to Stable. `install.sh` only re-runs when that changed something. When the
+Hyprland package that `build/versions.env` names is still being built by the Package workflow, it offers to
+wait for that build; if it fails, the checkout goes back to where it was.
 
 The checkout must have no uncommitted changes. Changes to the session environment (`config/uwsm/env`)
 apply after logging out and back in. From a terminal: `omarchy-channel-set stable` or

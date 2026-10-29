@@ -1,0 +1,94 @@
+# Builds the hyprland-opt .deb and publishes it as release hyprland-opt-<version>, the release install.sh
+# downloads. Branches get a pre-release; once the same build/ lands on main it's promoted to the latest
+# release without building again. Each release records the build/ tree it came from ("build-tree:" in its
+# notes): a branch that changes build/ again is rebuilt, a main release that doesn't match fails, because
+# that needs a new PKG_REVISION.
+name: Package
+
+on:
+  push:
+    paths: [build/**, build.sh, .github/workflows/package.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: package-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Decide
+        id: plan
+        run: |
+          . build/versions.env
+          v=${HYPRLAND_TAG#v}-$PKG_REVISION
+          tag=hyprland-opt-$v
+          tree=$(git rev-parse HEAD:build)
+          echo "version=$v" >>"$GITHUB_OUTPUT"
+          echo "tag=$tag" >>"$GITHUB_OUTPUT"
+          echo "tree=$tree" >>"$GITHUB_OUTPUT"
+
+          if ! release=$(gh release view "$tag" --json body,isPrerelease 2>/dev/null); then
+            echo "No release $tag yet: building."
+            echo "action=build" >>"$GITHUB_OUTPUT"
+            exit 0
+          fi
+          built_from=$(jq -r '.body' <<<"$release" | sed -n 's/^build-tree: //p')
+          prerelease=$(jq -r '.isPrerelease' <<<"$release")
+
+          if [[ -z $built_from || $built_from == "$tree" ]]; then
+            # Same build/ (or a release from before build-tree was recorded): nothing to build.
+            if [[ $GITHUB_REF == refs/heads/main && $prerelease == true ]]; then
+              echo "action=promote" >>"$GITHUB_OUTPUT"
+            else
+              echo "action=none" >>"$GITHUB_OUTPUT"
+            fi
+          elif [[ $prerelease == true ]]; then
+            echo "build/ changed since $tag was built: rebuilding."
+            echo "action=build" >>"$GITHUB_OUTPUT"
+          else
+            echo "::error::build/ changed but $tag is already released from main. Bump PKG_REVISION in build/versions.env."
+            exit 1
+          fi
+
+      - name: Free disk space
+        if: steps.plan.outputs.action == 'build'
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+
+      - name: Build
+        if: steps.plan.outputs.action == 'build'
+        run: ./build.sh
+
+      - name: Publish
+        if: steps.plan.outputs.action == 'build'
+        env:
+          V: ${{ steps.plan.outputs.version }}
+          TAG: ${{ steps.plan.outputs.tag }}
+          TREE: ${{ steps.plan.outputs.tree }}
+        run: |
+          # Release assets can't contain "~"; install.sh downloads the "_ubuntu" name.
+          asset=hyprland-opt_${V}_ubuntu26.04_amd64.deb
+          cp "dist/hyprland-opt_${V}~ubuntu26.04_amd64.deb" "$asset"
+          notes=$(printf 'Built from %s (%s).\n\nbuild-tree: %s\n' "$GITHUB_SHA" "$GITHUB_REF_NAME" "$TREE")
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$asset" --clobber
+            gh release edit "$TAG" --notes "$notes"
+            [[ $GITHUB_REF != refs/heads/main ]] || gh release edit "$TAG" --prerelease=false --latest
+          elif [[ $GITHUB_REF == refs/heads/main ]]; then
+            gh release create "$TAG" "$asset" --title "hyprland-opt $V" --notes "$notes" --target "$GITHUB_SHA"
+          else
+            gh release create "$TAG" "$asset" --title "hyprland-opt $V" --notes "$notes" --target "$GITHUB_SHA" --prerelease
+          fi
+
+      - name: Promote
+        if: steps.plan.outputs.action == 'promote'
+        run: gh release edit "${{ steps.plan.outputs.tag }}" --prerelease=false --latest
