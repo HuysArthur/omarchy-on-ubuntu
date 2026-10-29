@@ -1,0 +1,17 @@
+diff --git a/default/omarchy/omarchy-menu.jsonc b/default/omarchy/omarchy-menu.jsonc
+index fb2b31d..e2842b9 100644
+--- a/default/omarchy/omarchy-menu.jsonc
++++ b/default/omarchy/omarchy-menu.jsonc
+@@ -348,10 +348,8 @@
+   "update.password": {"icon":"","label":"Password"},
+   "update.timezone": {"icon":"","label":"Timezone","action":"omarchy-menu-timezone"},
+   "update.time": {"icon":"","label":"Time","action":"omarchy-launch-floating-terminal-with-presentation omarchy-update-time"},
+-  "update.channel.stable": {"icon":"🟢","label":"Stable","checked":"[[ \"$(omarchy-channel-current)\" == \"stable\" ]]","action":"omarchy-launch-floating-terminal-with-presentation 'omarchy-channel-set stable'"},
+-  "update.channel.rc": {"icon":"🟡","label":"RC","checked":"[[ \"$(omarchy-channel-current)\" == \"rc\" ]]","action":"omarchy-launch-floating-terminal-with-presentation 'omarchy-channel-set rc'"},
+-  "update.channel.edge": {"icon":"🟠","label":"Edge","checked":"[[ \"$(omarchy-channel-current)\" == \"edge\" ]]","action":"omarchy-launch-floating-terminal-with-presentation 'omarchy-channel-set edge'"},
+-  "update.channel.dev": {"icon":"🔴","label":"Dev","checked":"[[ \"$(omarchy-channel-current)\" == \"dev\" ]]","action":"omarchy-launch-floating-terminal-with-presentation 'omarchy-channel-set dev'"},
++  "update.channel.stable": {"icon":"🟢","label":"Stable","description":"omarchy-ubuntu main","checked":"[[ \"$(omarchy-channel-current)\" == \"stable\" ]]","action":"omarchy-channel-set stable"},
++  "update.channel.pr": {"icon":"","label":"Pull request","description":"Try an open omarchy-ubuntu pull request","checked":"[[ \"$(omarchy-channel-current)\" == pr-* ]]","action":"omarchy-channel-set pr"},
+   "update.process.hyprsunset": {"icon":"","label":"Hyprsunset","action":"omarchy-restart-hyprsunset"},
+   "update.process.shell": {"icon":"󰍜","label":"Shell","action":"omarchy-restart-shell"},
+   "update.config.hyprland": {"icon":"","label":"Hyprland","action":"omarchy-launch-floating-terminal-with-presentation omarchy-refresh-hyprland"},

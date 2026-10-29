@@ -1,1 +1,64 @@
-omarchy-ubuntu-unsupported
+#!/bin/bash
+# Ubuntu replacement: switch the omarchy-ubuntu checkout to main ("stable") or an open pull request,
+# then re-run install.sh. Going back to stable removes what the pull request installed.
+#   omarchy-channel-set stable | pr [<number>]
+set -euo pipefail
+
+fail() {
+  echo "$1" >&2
+  omarchy-notification-send -u critical "Channel not changed" "$1" >/dev/null 2>&1 || true
+  exit 1
+}
+
+REPO=$(cat "$HOME/.local/state/omarchy-ubuntu/repo" 2>/dev/null) || true
+[[ -n $REPO && -d $REPO/.git ]] || fail "No omarchy-ubuntu checkout found. Run install.sh from one first."
+cd "$REPO"
+
+case ${1:-} in
+  stable) ;;
+  pr)
+    if [[ -z ${2:-} ]]; then
+      # Pick from the open pull requests in the menu, then come back here in a terminal.
+      current=$(omarchy-channel-current)
+      prs=$(gh pr list --json number,title,isDraft \
+        --jq '.[] | "\(.number)\t\(.title)\(if .isDraft then " (draft)" else "" end)"') \
+        || fail "Could not list pull requests (is gh logged in?)."
+      [[ -n $prs ]] || fail "There are no open pull requests."
+      options=()
+      while IFS=$'\t' read -r number title; do
+        [[ $current == "pr-$number" ]] && glyph=✓ || glyph=
+        options+=("$glyph"$'\t'"#$number $title")
+      done <<<"$prs"
+      choice=$(omarchy-menu-select "Pull request" "${options[@]}" -- --width 640) || exit 0
+      number=${choice%% *}
+      exec omarchy-launch-floating-terminal-with-presentation "omarchy-channel-set pr ${number#\#}"
+    fi
+    [[ $2 =~ ^[0-9]+$ ]] || fail "Not a pull request number: $2"
+    ;;
+  *) fail "Usage: omarchy-channel-set stable | pr [<number>]" ;;
+esac
+
+if [[ ! -t 1 ]]; then
+  exec omarchy-launch-floating-terminal-with-presentation "omarchy-channel-set $*"
+fi
+
+[[ -z $(git status --porcelain) ]] || fail "$REPO has uncommitted changes. Commit or stash them first."
+
+if [[ $1 == stable ]]; then
+  channel=stable label=Stable
+  git checkout main
+  git pull --ff-only
+else
+  channel=pr-$2 label="PR #$2"
+  gh pr checkout "$2"
+  # A branch from before channel support doesn't track its files, so stable couldn't remove them later.
+  if ! grep -q '^MANAGED=' install.sh; then
+    echo "This pull request predates channel switching: going back to Stable won't remove what it installs."
+    echo "Rebase it onto main to fix that."
+    gum confirm "Install it anyway?" || { git checkout main; exit 130; }
+  fi
+fi
+
+OMARCHY_UBUNTU_CHANNEL=$channel ./install.sh
+omarchy-notification-send "Now on $label" \
+  "Session environment changes apply after you log out and back in." >/dev/null 2>&1 || true
