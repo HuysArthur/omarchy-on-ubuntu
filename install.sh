@@ -90,12 +90,13 @@ put() {
 [[ ${ID:-} == ubuntu && ${VERSION_ID:-} == 26.04 ]] || die "Built for Ubuntu 26.04, found ${PRETTY_NAME:-unknown}."
 [[ $(dpkg --print-architecture) == amd64 ]] || die "Only amd64 is supported."
 
-DEB=${1:-$(ls -t "$REPO"/dist/hyprland-opt_*_amd64.deb 2>/dev/null | head -1 || true)}
+# shellcheck disable=SC1091
+. "$REPO/build/versions.env"
+pkg_version=${HYPRLAND_TAG#v}-$PKG_REVISION
+# A local build (./build.sh: "~ubuntu") or an earlier download ("_ubuntu") of the pinned version.
+DEB=${1:-$(ls -t "$REPO"/dist/hyprland-opt_"$pkg_version"[~_]ubuntu26.04_amd64.deb 2>/dev/null | head -1 || true)}
 if [[ -z $DEB ]]; then
-  # No local build: fetch the prebuilt package from this repo's GitHub release (public repos only).
-  # shellcheck disable=SC1091
-  . "$REPO/build/versions.env"
-  pkg_version=${HYPRLAND_TAG#v}-$PKG_REVISION
+  # No local build: fetch the prebuilt package from this repo's GitHub release.
   origin=$(git -C "$REPO" remote get-url origin 2>/dev/null || true)
   slug=$(sed -nE 's#^(https://github\.com/|git@github\.com:)([^/]+/[^/]+)$#\2#p' <<<"$origin")
   slug=${slug%.git}
@@ -275,6 +276,7 @@ mv "$MANAGED.new" "$MANAGED"
 # For omarchy-channel-set: where this checkout lives and which branch it installed.
 echo "$REPO" >"$STATE/repo"
 echo "${OMARCHY_UBUNTU_CHANNEL:-$(git -C "$REPO" branch --show-current 2>/dev/null || true)}" >"$STATE/channel"
+git -C "$REPO" rev-parse HEAD >"$STATE/commit" 2>/dev/null || true
 
 cat <<EOF
 

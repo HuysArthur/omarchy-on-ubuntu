@@ -1,21 +1,55 @@
 #!/bin/bash
 # Ubuntu replacement: switch the omarchy-ubuntu checkout to main ("stable") or an open pull request,
 # then re-run install.sh. Going back to stable removes what the pull request installed.
-#   omarchy-channel-set stable | pr [<number>]
+#   omarchy-channel-set stable | pr [<number>] | update
+# update (run by omarchy-update) pulls the current channel and re-installs only when it changed; a pull
+# request that has been merged or closed goes back to stable.
 set -euo pipefail
+
+STATE=$HOME/.local/state/omarchy-ubuntu
 
 fail() {
   echo "$1" >&2
-  omarchy-notification-send -u critical "Channel not changed" "$1" >/dev/null 2>&1 || true
+  omarchy-notification-send -u critical "omarchy-ubuntu not updated" "$1" >/dev/null 2>&1 || true
   exit 1
 }
 
-REPO=$(cat "$HOME/.local/state/omarchy-ubuntu/repo" 2>/dev/null) || true
+REPO=$(cat "$STATE/repo" 2>/dev/null) || true
 [[ -n $REPO && -d $REPO/.git ]] || fail "No omarchy-ubuntu checkout found. Run install.sh from one first."
 cd "$REPO"
 
+# checkout stable | checkout pr <number>
+checkout() {
+  [[ -z $(git status --porcelain) ]] || fail "$REPO has uncommitted changes. Commit or stash them first."
+  if [[ $1 == stable ]]; then
+    git checkout -q main
+    git pull -q --ff-only
+  else
+    gh pr checkout "$2"
+  fi
+}
+
+# install.sh downloads the release for build/versions.env; say up front when that needs building first.
+check_package() {
+  local HYPRLAND_TAG PKG_REVISION v
+  # shellcheck disable=SC1091
+  . build/versions.env
+  v=${HYPRLAND_TAG#v}-$PKG_REVISION
+  compgen -G "dist/hyprland-opt_$v[~_]ubuntu26.04_amd64.deb" >/dev/null && return 0
+  gh release view "hyprland-opt-$v" >/dev/null 2>&1 && return 0
+  fail "hyprland-opt $v needs a rebuild: run ./build.sh in $REPO and publish it (see the README)."
+}
+
+# reinstall <channel> <notification title>
+reinstall() {
+  check_package
+  OMARCHY_UBUNTU_CHANNEL=$1 ./install.sh
+  omarchy-notification-send "$2" \
+    "Session environment changes apply after you log out and back in." >/dev/null 2>&1 || true
+}
+
 case ${1:-} in
-  stable) ;;
+  stable | update) ;;
   pr)
     if [[ -z ${2:-} ]]; then
       # Pick from the open pull requests in the menu, then come back here in a terminal.
@@ -35,30 +69,46 @@ case ${1:-} in
     fi
     [[ $2 =~ ^[0-9]+$ ]] || fail "Not a pull request number: $2"
     ;;
-  *) fail "Usage: omarchy-channel-set stable | pr [<number>]" ;;
+  *) fail "Usage: omarchy-channel-set stable | pr [<number>] | update" ;;
 esac
 
 if [[ ! -t 1 ]]; then
   exec omarchy-launch-floating-terminal-with-presentation "omarchy-channel-set $*"
 fi
 
-[[ -z $(git status --porcelain) ]] || fail "$REPO has uncommitted changes. Commit or stash them first."
+if [[ $1 == update ]]; then
+  current=$(omarchy-channel-current)
+  if [[ $current == pr-* ]]; then
+    state=$(gh pr view "${current#pr-}" --json state -q .state) || fail "Could not look up PR #${current#pr-}."
+    if [[ $state == OPEN ]]; then
+      set -- pr "${current#pr-}"
+    else
+      echo "PR #${current#pr-} is ${state,,}, going back to Stable."
+      set -- stable
+    fi
+  else
+    set -- stable
+  fi
+  channel=$1${2:+-$2}
+  checkout "$@"
+  if [[ $channel == "$current" && $(git rev-parse HEAD) == "$(cat "$STATE/commit" 2>/dev/null)" ]]; then
+    echo "omarchy-ubuntu is up to date."
+    exit 0
+  fi
+  reinstall "$channel" "omarchy-ubuntu updated"
+  exit 0
+fi
 
 if [[ $1 == stable ]]; then
-  channel=stable label=Stable
-  git checkout main
-  git pull --ff-only
+  checkout stable
+  reinstall stable "Now on Stable"
 else
-  channel=pr-$2 label="PR #$2"
-  gh pr checkout "$2"
+  checkout pr "$2"
   # A branch from before channel support doesn't track its files, so stable couldn't remove them later.
   if ! grep -q '^MANAGED=' install.sh; then
     echo "This pull request predates channel switching: going back to Stable won't remove what it installs."
     echo "Rebase it onto main to fix that."
-    gum confirm "Install it anyway?" || { git checkout main; exit 130; }
+    gum confirm "Install it anyway?" || { git checkout -q main; exit 130; }
   fi
+  reinstall "pr-$2" "Now on PR #$2"
 fi
-
-OMARCHY_UBUNTU_CHANNEL=$channel ./install.sh
-omarchy-notification-send "Now on $label" \
-  "Session environment changes apply after you log out and back in." >/dev/null 2>&1 || true
