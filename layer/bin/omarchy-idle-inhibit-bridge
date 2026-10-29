@@ -1,0 +1,145 @@
+#!/usr/bin/env python3
+# Serves org.freedesktop.ScreenSaver in the Hyprland session. Browsers and video players ask it to keep the
+# screen awake during calls and playback; on Arch, hypridle answered that. Omarchy's shell only honours
+# Wayland idle inhibitors, so while any app holds an inhibit, run a Quickshell surface that holds one.
+import os
+import signal
+import sys
+
+from gi.repository import Gio, GLib, GLibUnix
+
+INHIBITOR_SHELL = os.path.expanduser("~/.local/share/omarchy-ubuntu/idle-inhibitor")
+
+INTERFACE = """
+<node>
+  <interface name="org.freedesktop.ScreenSaver">
+    <method name="Inhibit">
+      <arg name="application_name" type="s" direction="in"/>
+      <arg name="reason_for_inhibit" type="s" direction="in"/>
+      <arg name="cookie" type="u" direction="out"/>
+    </method>
+    <method name="UnInhibit">
+      <arg name="cookie" type="u" direction="in"/>
+    </method>
+    <method name="GetActive">
+      <arg type="b" direction="out"/>
+    </method>
+    <method name="SimulateUserActivity"/>
+  </interface>
+</node>
+"""
+
+inhibits = {}  # cookie -> (sender, application, reason)
+next_cookie = 1
+inhibitor = None  # pid of the Quickshell inhibitor surface
+loop = GLib.MainLoop()
+
+
+def log(message):
+    print(message, flush=True)
+
+
+def sync_inhibitor():
+    global inhibitor
+    if inhibits and inhibitor is None:
+        inhibitor, *_ = GLib.spawn_async(
+            ["quickshell", "-n", "-p", INHIBITOR_SHELL],
+            flags=GLib.SpawnFlags.SEARCH_PATH | GLib.SpawnFlags.DO_NOT_REAP_CHILD
+            | GLib.SpawnFlags.STDOUT_TO_DEV_NULL | GLib.SpawnFlags.STDERR_TO_DEV_NULL,
+        )
+        GLib.child_watch_add(GLib.PRIORITY_DEFAULT, inhibitor, on_inhibitor_exit)
+    elif not inhibits and inhibitor is not None:
+        os.kill(inhibitor, signal.SIGTERM)
+
+
+def on_inhibitor_exit(pid, status):
+    global inhibitor
+    GLib.spawn_close_pid(pid)
+    if inhibitor != pid:
+        return
+    inhibitor = None
+    if inhibits:
+        log(f"inhibitor exited unexpectedly (status {status}); restarting")
+        GLib.timeout_add_seconds(1, restart_inhibitor)
+
+
+def restart_inhibitor():
+    sync_inhibitor()
+    return GLib.SOURCE_REMOVE
+
+
+def release(cookies):
+    for cookie in cookies:
+        sender, application, reason = inhibits.pop(cookie)
+        log(f"release {cookie}: {application} ({reason})")
+    sync_inhibitor()
+
+
+def on_call(connection, sender, path, interface, method, params, invocation):
+    global next_cookie
+    if method == "Inhibit":
+        application, reason = params.unpack()
+        cookie = next_cookie
+        next_cookie += 1
+        inhibits[cookie] = (sender, application, reason)
+        log(f"inhibit {cookie}: {application} ({reason})")
+        sync_inhibitor()
+        invocation.return_value(GLib.Variant("(u)", (cookie,)))
+    elif method == "UnInhibit":
+        (cookie,) = params.unpack()
+        if cookie in inhibits and inhibits[cookie][0] == sender:
+            release([cookie])
+        invocation.return_value(None)
+    elif method == "GetActive":
+        invocation.return_value(GLib.Variant("(b)", (False,)))
+    else:
+        invocation.return_value(None)
+
+
+# An app that quits or crashes without UnInhibit must not keep the screen awake.
+def on_name_owner_changed(connection, sender, path, interface, signal_name, params):
+    name, old_owner, new_owner = params.unpack()
+    if new_owner == "" and old_owner:
+        gone = [cookie for cookie, (owner, _, _) in inhibits.items() if owner == old_owner]
+        if gone:
+            release(gone)
+
+
+def on_bus_acquired(connection, name):
+    info = Gio.DBusNodeInfo.new_for_xml(INTERFACE).interfaces[0]
+    # Chromium and Firefox use /ScreenSaver, the spec says /org/freedesktop/ScreenSaver.
+    for path in ("/org/freedesktop/ScreenSaver", "/ScreenSaver"):
+        connection.register_object_with_closures2(path, info, on_call, None, None)
+    connection.signal_subscribe(
+        "org.freedesktop.DBus", "org.freedesktop.DBus", "NameOwnerChanged", "/org/freedesktop/DBus",
+        None, Gio.DBusSignalFlags.NONE, on_name_owner_changed,
+    )
+
+
+def on_name_lost(connection, name):
+    log(f"could not own {name} (another screensaver service has it); exiting")
+    loop.quit()
+
+
+def quit():
+    loop.quit()
+    return GLib.SOURCE_REMOVE
+
+
+def main():
+    Gio.bus_own_name(
+        Gio.BusType.SESSION, "org.freedesktop.ScreenSaver", Gio.BusNameOwnerFlags.DO_NOT_QUEUE,
+        on_bus_acquired, None, on_name_lost,
+    )
+    for sig in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
+        GLibUnix.signal_add(GLib.PRIORITY_DEFAULT, sig, quit)
+    try:
+        loop.run()
+    finally:
+        if inhibitor is not None:
+            os.kill(inhibitor, signal.SIGTERM)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
