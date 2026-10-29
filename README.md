@@ -4,7 +4,7 @@
 Unofficial: not affiliated with Basecamp or the Omarchy project.
 
 - **Hyprland 0.56.2 + Quickshell 0.3.2**, compiled once into a self-contained `.deb` under `/opt/hyprland`
-  (no conflicts with Ubuntu's packages).
+  (no conflicts with Ubuntu's packages), together with `ttfx` 0.5.1 for Omarchy's screensaver.
 - **Omarchy 4.0.6** (pinned checkout in `~/.local/share/omarchy`): its keybindings, look, window rules,
   themes and its Quickshell shell (bar, menus, notifications, OSD, lock screen) run unmodified.
 - **Ubuntu layer** (`~/.local/share/omarchy-ubuntu`): a read-only `pacman` stand-in backed by dpkg,
@@ -45,7 +45,7 @@ tag's `flake.lock`.
 ```bash
 git clone https://github.com/HuysArthur/omarchy-on-ubuntu && cd omarchy-on-ubuntu
 ./install.sh                          # newest .deb in dist/, else downloads it from this repo's release
-./install.sh /path/to/hyprland-opt_0.56.2-1~ubuntu26.04_amd64.deb
+./install.sh /path/to/hyprland-opt_0.56.2-2~ubuntu26.04_amd64.deb
 ```
 
 Then log out and pick "Hyprland (Omarchy)". Super+K shows all keybindings, Super+Space opens the menu.
@@ -99,5 +99,5 @@ tensaku, localsend, Obsidian); their menu entries won't work until you install t
 ## License
 
 The scripts and configs in this repo are MIT (see `LICENSE`). The `.deb` contains Hyprland and its hyprwm
-libraries (BSD-3-Clause) and Quickshell (LGPL-3.0), built unmodified from the sources pinned in
+libraries (BSD-3-Clause), Quickshell (LGPL-3.0) and ttfx (MIT), built unmodified from the sources pinned in
 `build/versions.env`. Omarchy (MIT) is downloaded by `install.sh`, not included here.

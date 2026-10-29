@@ -73,6 +73,11 @@ cmake_build Hyprland -DNO_HYPRPM=ON -DNO_UWSM=ON
 fetch quickshell https://git.outfoxxed.me/quickshell/quickshell "$QUICKSHELL_TAG"
 cmake_build quickshell -DDISTRIBUTOR="omarchy-ubuntu" -DCRASH_HANDLER=OFF -DINSTALL_QML_PREFIX=lib/qt6/qml
 
+fetch ttfx https://github.com/omacom/ttfx "$TTFX_TAG"
+echo "==> ttfx"
+CARGO_HOME=/work/cargo cargo build --locked --release --manifest-path "$SRC/ttfx/Cargo.toml" --target-dir "$BLD/ttfx"
+install -m755 "$BLD/ttfx/release/ttfx" "$PREFIX/bin/ttfx"
+
 # ---- package ----
 VERSION="${HYPRLAND_TAG#v}-${PKG_REVISION}~ubuntu26.04"
 PKG=hyprland-opt
@@ -133,7 +138,7 @@ Recommends: xdg-desktop-portal-hyprland, xdg-desktop-portal-gtk
 Section: x11
 Priority: optional
 Installed-Size: $(du -sk "$STAGE/opt" | cut -f1)
-Description: Hyprland $HYPRLAND_TAG and Quickshell $QUICKSHELL_TAG, self-contained in /opt/hyprland
+Description: Hyprland $HYPRLAND_TAG, Quickshell $QUICKSHELL_TAG and ttfx $TTFX_TAG, self-contained in /opt/hyprland
  Built for Ubuntu 26.04. Adds a "Hyprland (Omarchy)" login session next to GNOME
  and does not touch any files from Ubuntu's own packages.
 EOF
