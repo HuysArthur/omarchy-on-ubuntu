@@ -11,6 +11,9 @@ Unofficial: not affiliated with Basecamp or the Omarchy project.
   apt-based `omarchy-update`/`omarchy-pkg-add`, an `awk` -> `gawk` wrapper (Omarchy's scripts need GNU awk;
   the system-wide awk stays mawk), and stubs for Arch-only commands (limine, plymouth, AUR, snapshots,
   factory reset).
+- **Screensaver inhibit bridge** (`omarchy-idle-inhibit-bridge`): answers apps that ask over DBus to keep the
+  screen awake (browsers during video calls, video players) by holding a Wayland idle inhibitor, the only kind
+  Omarchy's shell honours. On Arch, hypridle answers those requests.
 - **Patches** (`patches/`): applied to the Omarchy checkout by `install.sh`: a variable named `transient`
   in the notifications service that Ubuntu's Qt 6.10 QML parser rejects, and the Update > Channel menu
   (see [Trying a pull request](#trying-a-pull-request)).
