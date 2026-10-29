@@ -14,6 +14,19 @@ if dpkg-query -W -f='${db:Status-Abbrev}' hyprland-opt 2>/dev/null | grep -q '^i
   sudo apt-get remove -y hyprland-opt
 fi
 
+if [[ -f $STATE/managed ]]; then
+  while IFS= read -r path; do
+    [[ -e $path || -L $path ]] || continue
+    if [[ $path == */systemd/user/* && ! -L $path ]]; then
+      systemctl --user disable --now "$(basename "$path")" 2>/dev/null || true
+    fi
+    # Files in $HOME are moved aside with the rest of the manifest below.
+    [[ $path == "$HOME"/* ]] && continue
+    say "Removing $path (sudo)"
+    sudo rm -f "$path"
+  done <"$STATE/managed"
+fi
+
 if [[ -f $MANIFEST ]]; then
   say "Moving installed files to $ASIDE"
   while IFS= read -r path; do

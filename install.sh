@@ -13,6 +13,9 @@ LAYER=$HOME/.local/share/omarchy-ubuntu
 STATE=$HOME/.local/state/omarchy-ubuntu
 BACKUP=$STATE/backup/$(date +%Y%m%d-%H%M%S)
 MANIFEST=$STATE/manifest
+# Files every run places (a subset of MANIFEST). A run that no longer places one removes it, so switching
+# back from a pull request (omarchy-channel-set) undoes what it installed.
+MANAGED=$STATE/managed
 
 # Desktop pieces Omarchy expects, by their Ubuntu names. Nothing here replaces or reconfigures GNOME.
 PACKAGES=(
@@ -35,6 +38,37 @@ backup() {
   local rel=${1#"$HOME"/}
   mkdir -p "$BACKUP/$(dirname "$rel")"
   cp -a "$1" "$BACKUP/$rel"
+}
+
+# manage PATH: PATH is placed on every run; prune removes it once a run stops placing it.
+manage() {
+  record "$1"
+  grep -qxF "$1" "$MANAGED.new" 2>/dev/null || echo "$1" >>"$MANAGED.new"
+}
+
+# Remove what the previous run managed and this one didn't, restoring what it had replaced.
+prune() {
+  local path rel dir units=
+  [[ -f $MANAGED ]] || return 0
+  while IFS= read -r path; do
+    grep -qxF "$path" "$MANAGED.new" 2>/dev/null && continue
+    [[ -e $path || -L $path ]] || continue
+    say "Removing $path (no longer installed)"
+    if [[ $path == */systemd/user/* ]]; then
+      [[ -L $path ]] || systemctl --user disable --now "$(basename "$path")" 2>/dev/null || true
+      units=1
+    fi
+    if [[ $path == "$HOME"/* ]]; then
+      rm -f "$path"
+      rel=${path#"$HOME"/}
+      for dir in $(ls -1d "$STATE"/backup/*/ 2>/dev/null | sort); do
+        [[ -e $dir/$rel || -L $dir/$rel ]] && { cp -a "$dir/$rel" "$path"; break; }
+      done
+    else
+      sudo rm -f "$path"
+    fi
+  done <"$MANAGED"
+  [[ -z $units ]] || systemctl --user daemon-reload
 }
 
 # put SRC DEST [--if-missing]: copy a config file into place, backing up whatever was there.
@@ -120,9 +154,11 @@ say "Placing configs (replaced files are backed up to $BACKUP)"
 C=$HOME/.config
 
 # Ours: session environment, Hyprland entry point, separate dconf profile.
-put "$REPO/config/uwsm/env" "$C/uwsm/env"
-put "$REPO/config/hypr/hyprland.lua" "$C/hypr/hyprland.lua"
-put "$REPO/config/dconf/hyprland.profile" "$C/dconf/hyprland.profile"
+rm -f "$MANAGED.new"
+for f in uwsm/env hypr/hyprland.lua dconf/hyprland.profile; do
+  put "$REPO/config/$f" "$C/$f"
+  manage "$C/$f"
+done
 
 # Start the Hyprland session's settings from a copy of the GNOME ones (fonts, keyboard, app prefs).
 if [[ ! -e $C/dconf/hyprland && -f $C/dconf/user ]]; then
@@ -217,6 +253,12 @@ record "$HOME/.local/state/omarchy"
 mkdir -p "$C/btop/themes"
 ln -snf "$HOME/.local/state/omarchy/current/theme/btop.theme" "$C/btop/themes/current.theme"
 record "$C/btop/themes/current.theme"
+
+prune
+mv "$MANAGED.new" "$MANAGED"
+# For omarchy-channel-set: where this checkout lives and which branch it installed.
+echo "$REPO" >"$STATE/repo"
+echo "${OMARCHY_UBUNTU_CHANNEL:-$(git -C "$REPO" branch --show-current 2>/dev/null || true)}" >"$STATE/channel"
 
 cat <<EOF
 

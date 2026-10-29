@@ -1,0 +1,7 @@
+#!/bin/bash
+# Ubuntu replacement: which omarchy-ubuntu branch install.sh last installed, "stable" (main) or "pr-<n>".
+channel=$(cat "$HOME/.local/state/omarchy-ubuntu/channel" 2>/dev/null)
+case $channel in
+  "" | main) echo stable ;;
+  *) echo "$channel" ;;
+esac

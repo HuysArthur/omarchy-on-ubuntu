@@ -11,8 +11,9 @@ Unofficial: not affiliated with Basecamp or the Omarchy project.
   apt-based `omarchy-update`/`omarchy-pkg-add`, an `awk` -> `gawk` wrapper (Omarchy's scripts need GNU awk;
   the system-wide awk stays mawk), and stubs for Arch-only commands (limine, plymouth, AUR, snapshots,
   factory reset).
-- **Patches** (`patches/`): applied to the Omarchy checkout by `install.sh`. Currently one: a variable
-  named `transient` in the notifications service that Ubuntu's Qt 6.10 QML parser rejects.
+- **Patches** (`patches/`): applied to the Omarchy checkout by `install.sh`: a variable named `transient`
+  in the notifications service that Ubuntu's Qt 6.10 QML parser rejects, and the Update > Channel menu
+  (see [Trying a pull request](#trying-a-pull-request)).
 
 ## GNOME stays untouched
 
@@ -55,6 +56,22 @@ v=0.56.2-1   # HYPRLAND_TAG without the v, then PKG_REVISION
 cp dist/hyprland-opt_${v}~ubuntu26.04_amd64.deb /tmp/hyprland-opt_${v}_ubuntu26.04_amd64.deb
 gh release create hyprland-opt-$v /tmp/hyprland-opt_${v}_ubuntu26.04_amd64.deb --title "hyprland-opt $v"
 ```
+
+## Trying a pull request
+
+Omarchy's **Update > Channel** menu switches this checkout between `main` and an open pull request:
+
+- **Pull request** lists the open PRs (needs a logged-in `gh`). Picking one checks out its branch and
+  re-runs `install.sh` in a terminal.
+- **Stable** goes back to `main` (pulling the latest) and re-runs `install.sh`, which removes whatever the
+  pull request installed and restores anything it had replaced.
+
+The checkout must have no uncommitted changes. Changes to the session environment (`config/uwsm/env`)
+apply after logging out and back in. From a terminal: `omarchy-channel-set stable` or
+`omarchy-channel-set pr 12`.
+
+For a PR to be undone cleanly, `install.sh` must record what it places on every run: use `manage` (see
+`install.sh`) for files, unit files and their `.wants` links, including files outside your home.
 
 ## Uninstall
 
