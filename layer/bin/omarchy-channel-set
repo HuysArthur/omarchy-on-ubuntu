@@ -8,8 +8,12 @@ set -euo pipefail
 
 STATE=$HOME/.local/state/omarchy-ubuntu
 
+# Set by checkout until install.sh starts, so a failed check goes back to the branch it came from.
+previous=
+
 fail() {
   echo "$1" >&2
+  [[ -z $previous ]] || git checkout -q "$previous"
   omarchy-notification-send -u critical "omarchy-ubuntu not updated" "$1" >/dev/null 2>&1 || true
   exit 1
 }
@@ -21,6 +25,7 @@ cd "$REPO"
 # checkout stable | checkout pr <number>
 checkout() {
   [[ -z $(git status --porcelain) ]] || fail "$REPO has uncommitted changes. Commit or stash them first."
+  previous=$(git branch --show-current)
   if [[ $1 == stable ]]; then
     git checkout -q main
     git pull -q --ff-only
@@ -29,20 +34,29 @@ checkout() {
   fi
 }
 
-# install.sh downloads the release for build/versions.env; say up front when that needs building first.
+# install.sh downloads the release for build/versions.env, which the Package workflow publishes. When that
+# build is still running, offer to wait for it.
 check_package() {
-  local HYPRLAND_TAG PKG_REVISION v
+  local HYPRLAND_TAG PKG_REVISION v run
   # shellcheck disable=SC1091
   . build/versions.env
   v=${HYPRLAND_TAG#v}-$PKG_REVISION
   compgen -G "dist/hyprland-opt_$v[~_]ubuntu26.04_amd64.deb" >/dev/null && return 0
+  run=$(gh run list --workflow package.yml --branch "$(git branch --show-current)" --limit 1 \
+    --json databaseId,status -q '.[] | select(.status != "completed") | .databaseId' 2>/dev/null) || true
+  if [[ -n $run ]]; then
+    echo "hyprland-opt $v is being built on GitHub."
+    gum confirm "Wait for it? A full build takes about an hour." || fail "hyprland-opt $v is still being built."
+    gh run watch "$run" --exit-status >/dev/null || fail "The hyprland-opt $v build failed: gh run view $run --log-failed"
+  fi
   gh release view "hyprland-opt-$v" >/dev/null 2>&1 && return 0
-  fail "hyprland-opt $v needs a rebuild: run ./build.sh in $REPO and publish it (see the README)."
+  fail "hyprland-opt $v isn't built: the Package workflow builds it when build/ changes (or run ./build.sh)."
 }
 
 # reinstall <channel> <notification title>
 reinstall() {
   check_package
+  previous=
   OMARCHY_UBUNTU_CHANNEL=$1 ./install.sh
   omarchy-notification-send "$2" \
     "Session environment changes apply after you log out and back in." >/dev/null 2>&1 || true
