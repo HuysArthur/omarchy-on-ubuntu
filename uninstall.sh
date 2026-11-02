@@ -48,6 +48,10 @@ if [[ -f $MANIFEST ]]; then
   fi
 fi
 
+for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do
+  [[ -f $rc ]] && grep -qF '# omarchy-ubuntu' "$rc" && sed -i '/# omarchy-ubuntu$/d' "$rc"
+done
+
 say "Removing Omarchy checkout and Ubuntu layer"
 rm -rf "$HOME/.local/share/omarchy" "$HOME/.local/share/omarchy-ubuntu" "$STATE"
 fc-cache -f >/dev/null 2>&1 || true

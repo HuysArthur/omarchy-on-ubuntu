@@ -11,6 +11,14 @@ Unofficial: not affiliated with Basecamp or the Omarchy project.
   apt-based `omarchy-update`/`omarchy-pkg-add`, an `awk` -> `gawk` wrapper (Omarchy's scripts need GNU awk;
   the system-wide awk stays mawk), and stubs for Arch-only commands (limine, plymouth, AUR, snapshots,
   factory reset).
+- **Herdr** (Omarchy's terminal workspace manager): the static release binary goes to `~/.local/bin/herdr`
+  (pinned in `install.sh`, self-updates with `herdr update`) unless you already have one, plus Omarchy's
+  tmux-style config if you have none. Super+Ctrl+Return opens it, Super+Ctrl+K lists its keys, prefix is
+  Ctrl+Space. Omarchy's layout commands work in bash and zsh: `hdl <ai> [<ai2>]` (editor + AI + terminal),
+  `hdlm <ai>` (an `hdl` tab per subdirectory), `hsl <n> <cmd>` (n panes running cmd), `hds` (needs `hunk`
+  and `opencode`), and `h` for `herdr`. A line `install.sh` adds to `~/.bashrc`/`~/.zshrc` loads them only
+  in the Hyprland session.
+  To take Omarchy's config over your own: `omarchy-refresh-herdr` (keeps yours as `config.toml.bak.<time>`).
 - **Patches** (`patches/`): applied to the Omarchy checkout by `install.sh`: a variable named `transient`
   in the notifications service that Ubuntu's Qt 6.10 QML parser rejects, and the Update > Channel menu
   (see [Trying a pull request](#trying-a-pull-request)).
@@ -21,6 +29,8 @@ Unofficial: not affiliated with Basecamp or the Omarchy project.
 - The Hyprland session uses its own GNOME-settings database (`~/.config/dconf/hyprland`, via `DCONF_PROFILE`),
   so Omarchy's dark mode, icons and fonts never change GNOME.
 - Theme switching does not rewrite VS Code, Claude Code, Obsidian or browser policies (shared with GNOME).
+- Shell additions (the herdr commands above) load only when `OMARCHY_PATH` is set, which only the
+  Hyprland session does; GNOME terminals behave as before.
 - Omarchy's XDG autostart entries are not installed (GNOME would run them too).
 - The only file outside your home and `/opt/hyprland` is `/etc/pam.d/omarchy-lock-password`, the PAM
   stack Omarchy's lock screen authenticates against (GNOME doesn't read it).
