@@ -26,6 +26,7 @@ PACKAGES=(
   btop fzf ripgrep bat eza fd-find zoxide fastfetch tree-sitter-cli lazygit neovim
   tesseract-ocr tesseract-ocr-eng zbar-tools qrencode libnotify-bin libxkbcommon-tools
   fonts-noto-color-emoji fonts-noto-cjk fonts-jetbrains-mono git curl xz-utils unzip
+  python3-gi  # omarchy-idle-inhibit-bridge
 )
 
 say() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
