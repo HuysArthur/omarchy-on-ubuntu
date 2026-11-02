@@ -74,12 +74,9 @@ tensaku, localsend, Obsidian); their menu entries won't work until you install t
 
 ## Troubleshooting
 
-**Built-in camera missing in Chrome** (common on laptops with an Intel IPU6/IPU7 camera): `install.sh`
-installs libcamera, but Chrome only lists such cameras through PipeWire. Enable
-`chrome://flags/#enable-webrtc-pipewire-camera` and relaunch Chrome.
-
-**Camera found but the picture stays black, on a laptop with an NVIDIA GPU**: libcamera processes the image
-on NVIDIA's graphics driver, which fails on these cameras. Make PipeWire use the integrated GPU instead:
+**Camera found but the picture stays black, on a laptop with an Intel IPU6/IPU7 camera and an NVIDIA GPU**:
+libcamera processes the image on NVIDIA's graphics driver, which fails on these cameras. Make PipeWire use the
+integrated GPU instead:
 
 ```bash
 for svc in pipewire wireplumber; do
