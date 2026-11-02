@@ -30,7 +30,9 @@ checkout() {
     git checkout -q main
     git pull -q --ff-only
   else
-    gh pr checkout "$2"
+    # --force: a PR that was rebased or force-pushed no longer fast-forwards from the local copy of its branch.
+    # Resets that local branch to the PR, dropping commits on it that were never pushed: the PR is what we install.
+    gh pr checkout --force "$2"
   fi
 }
 
