@@ -15,5 +15,5 @@ end
 hl.env("PATH", table.concat(path, ":"))
 
 -- Omarchy's shell only honours Wayland idle inhibitors; browsers ask over DBus (org.freedesktop.ScreenSaver),
--- which hypridle answers on Arch. Without this, the screensaver starts during video calls.
+-- which nothing else in the session answers. Without this, the screensaver starts during video calls.
 o.launch_on_start("omarchy-idle-inhibit-bridge")

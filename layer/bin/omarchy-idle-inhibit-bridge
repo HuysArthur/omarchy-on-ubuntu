@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Serves org.freedesktop.ScreenSaver in the Hyprland session. Browsers and video players ask it to keep the
-# screen awake during calls and playback; on Arch, hypridle answered that. Omarchy's shell only honours
+# screen awake during calls and playback, and nothing else in the session answers. Omarchy's shell only honours
 # Wayland idle inhibitors, so while any app holds an inhibit, run a Quickshell surface that holds one.
 import os
 import signal
