@@ -23,6 +23,9 @@ PACKAGES=(
   btop fzf ripgrep bat eza fd-find zoxide fastfetch tree-sitter-cli lazygit neovim
   tesseract-ocr tesseract-ocr-eng zbar-tools qrencode libnotify-bin libxkbcommon-tools
   fonts-noto-color-emoji fonts-noto-cjk fonts-jetbrains-mono git curl xz-utils unzip
+  # Camera support for laptops whose camera needs libcamera (Intel IPU6/IPU7); the full Ubuntu desktop
+  # ships these, the minimal install does not.
+  libspa-0.2-libcamera libcamera-ipa gstreamer1.0-libcamera
 )
 
 say() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }

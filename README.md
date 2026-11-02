@@ -72,6 +72,24 @@ bootloader/plymouth/hibernation setup, snapper snapshots, factory reset, DNS pre
 Some apps Omarchy preinstalls aren't in Ubuntu's archive (hyprsunset night light, gpu-screen-recorder,
 tensaku, localsend, Obsidian); their menu entries won't work until you install them yourself.
 
+## Troubleshooting
+
+**Built-in camera missing in Chrome** (common on laptops with an Intel IPU6/IPU7 camera): `install.sh`
+installs libcamera, but Chrome only lists such cameras through PipeWire. Enable
+`chrome://flags/#enable-webrtc-pipewire-camera` and relaunch Chrome.
+
+**Camera found but the picture stays black, on a laptop with an NVIDIA GPU**: libcamera processes the image
+on NVIDIA's graphics driver, which fails on these cameras. Make PipeWire use the integrated GPU instead:
+
+```bash
+for svc in pipewire wireplumber; do
+  mkdir -p ~/.config/systemd/user/$svc.service.d
+  printf '[Service]\nEnvironment=__EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/50_mesa.json\n' \
+    > ~/.config/systemd/user/$svc.service.d/libcamera-mesa-egl.conf
+done
+systemctl --user daemon-reload && systemctl --user restart pipewire wireplumber
+```
+
 ## License
 
 The scripts and configs in this repo are MIT (see `LICENSE`). The `.deb` contains Hyprland and its hyprwm
