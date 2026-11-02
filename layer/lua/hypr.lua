@@ -16,4 +16,5 @@ hl.env("PATH", table.concat(path, ":"))
 
 -- Omarchy's shell only honours Wayland idle inhibitors; browsers ask over DBus (org.freedesktop.ScreenSaver),
 -- which nothing else in the session answers. Without this, the screensaver starts during video calls.
-o.launch_on_start("omarchy-idle-inhibit-bridge")
+-- uwsm-app sends output to /dev/null; systemd-cat keeps the bridge's inhibit/release lines in the journal.
+o.launch_on_start("systemd-cat -t omarchy-idle-inhibit-bridge omarchy-idle-inhibit-bridge")
