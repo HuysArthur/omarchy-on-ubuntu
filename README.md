@@ -47,7 +47,12 @@ replaced is restored.
 ## What doesn't work
 
 Some Omarchy features depend on Arch Linux: pacman/AUR updates (apt is used instead),
-bootloader/plymouth/hibernation setup, snapper snapshots and factory reset.
+bootloader/plymouth/hibernation setup, snapper snapshots and factory reset. Their menu entries are hidden:
+Install > AUR, Install > Editor > Emacs, Install > AI > Hermes Desktop and OpenClaw (and both under Setup >
+Default agent), Style > Unlock and Update > Config > Plymouth.
+
+Install > Browser gets Chrome and Edge from their vendors' `.deb`, Brave from Brave's apt repository and Zen
+from Flathub, so they stay up to date with the rest of your system.
 
 A few apps Omarchy expects aren't in Ubuntu's archive (hyprsunset, gpu-screen-recorder, tensaku,
 localsend, Obsidian). Their menu entries work once you install them yourself.

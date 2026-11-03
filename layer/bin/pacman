@@ -2,10 +2,18 @@
 # Read-only pacman stand-in for Omarchy on Ubuntu: answers package queries from dpkg
 # so Omarchy's "is X installed?" checks work. Anything that would change packages is refused.
 
+# shellcheck source=../lib/pkg-names.sh
+. "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../lib/pkg-names.sh"
+
 installed() { dpkg-query -W -f='${db:Status-Abbrev} ${Package}\n' 2>/dev/null | awk '$1 ~ /^ii/ {print $2}'; }
 
 has() {
   local name=${1%%[<>=]*}
+  # Apps Omarchy names by their AUR package (browsers): ask for what Ubuntu installs instead.
+  if pkg_mapped "$name"; then
+    pkg_installed "$name"
+    return
+  fi
   dpkg-query -W -f='${db:Status-Abbrev}' "$name" 2>/dev/null | grep -q '^ii' || command -v "$name" >/dev/null 2>&1
 }
 

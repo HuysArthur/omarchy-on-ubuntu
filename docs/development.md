@@ -9,7 +9,9 @@ Details for people changing this project. Users only need the [README](../README
 - **Omarchy 4.0.6**, a pinned checkout in `~/.local/share/omarchy`: its keybindings, look, window rules,
   themes and Quickshell shell (bar, menus, notifications, OSD, lock screen) run unmodified.
 - **Ubuntu layer** (`~/.local/share/omarchy-ubuntu`): a read-only `pacman` stand-in backed by dpkg,
-  apt-based `omarchy-update`/`omarchy-pkg-add`/`omarchy-pkg-drop`/`omarchy-pkg-remove`, an `awk` -> `gawk` wrapper (Omarchy's scripts need GNU awk;
+  apt-based `omarchy-update` and package commands (Install > Package and Remove > Package pick from apt;
+  Install > Browser installs from the vendors' Ubuntu sources or Flathub, and `layer/lib/pkg-names.sh` maps
+  those browsers' Arch package names to what Ubuntu installs), an `awk` -> `gawk` wrapper (Omarchy's scripts need GNU awk;
   the system-wide awk stays mawk), and stubs for Arch-only commands (limine, plymouth, AUR, snapshots,
   factory reset).
 - **Screensaver inhibit bridge** (`omarchy-idle-inhibit-bridge`): answers apps that ask over DBus to keep the
@@ -17,8 +19,10 @@ Details for people changing this project. Users only need the [README](../README
   Omarchy's shell honours.
 - **Patches** (`patches/`), applied to the Omarchy checkout by `install.sh`: a variable named `transient`
   in the notifications service that Ubuntu's Qt 6.10 QML parser rejects, the Update > Channel menu,
-  the app launcher's uninstall action (apt and snap instead of pacman), and Remove menu entries that would
-  take packages away from GNOME (Fingerprint, Preinstalls).
+  the app launcher's uninstall action (apt and snap instead of pacman), Remove menu entries that would
+  take packages away from GNOME (Fingerprint, Preinstalls), the browser installer (it skips Omarchy's browser
+  policies under `/etc` and `~/.config/environment.d`, which GNOME would pick up too), menu entries hidden
+  because they need Arch, and the Ubuntu names of browsers in the menu and `omarchy-default-browser`.
 
 ## How GNOME is kept separate
 
