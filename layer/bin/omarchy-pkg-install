@@ -1,10 +1,25 @@
 #!/bin/bash
-# Installs with apt instead of pacman. Arch and Ubuntu names often match; when they don't, apt says so.
-missing=()
-for p in "$@"; do pacman -Qq "$p" >/dev/null 2>&1 || missing+=("$p"); done
-((${#missing[@]})) || exit 0
-if ((EUID == 0)); then
-  apt-get install -y -- "${missing[@]}"
-else
-  sudo apt-get install -y -- "${missing[@]}"
+# Install > Package: a fuzzy-finder TUI over Ubuntu's apt packages (Omarchy's picks from pacman's repos).
+# With package names it installs those instead, like omarchy-pkg-add.
+if (($#)); then
+  exec omarchy-pkg-add "$@"
+fi
+
+fzf_args=(
+  --multi
+  --preview 'apt-cache show {1} 2>/dev/null | grep -v "^ \."'
+  --preview-label='alt-p: toggle description, alt-j/k: scroll, tab: multi-select'
+  --preview-label-pos='bottom'
+  --preview-window 'down:65%:wrap'
+  --bind 'alt-p:toggle-preview'
+  --bind 'alt-d:preview-half-page-down,alt-u:preview-half-page-up'
+  --bind 'alt-k:preview-up,alt-j:preview-down'
+  --color 'pointer:green,marker:green'
+)
+
+mapfile -t pkg_names < <(apt-cache pkgnames | sort | fzf "${fzf_args[@]}")
+
+if ((${#pkg_names[@]})); then
+  sudo apt-get install -- "${pkg_names[@]}"
+  omarchy-show-done
 fi
