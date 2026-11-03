@@ -48,8 +48,16 @@ if [[ -f $MANIFEST ]]; then
   fi
 fi
 
+# The herdr line install.sh added to the rc files, with the blank line it put before it. Written back with
+# cat so a symlinked rc file keeps its link and permissions.
 for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do
-  [[ -f $rc ]] && grep -qF '# omarchy-ubuntu' "$rc" && sed -i '/# omarchy-ubuntu$/d' "$rc"
+  [[ -f $rc ]] && grep -qF '# omarchy-ubuntu' "$rc" || continue
+  tmp=$(mktemp)
+  awk '/# omarchy-ubuntu$/ { pending = 0; next }
+    { if (pending) print ""; if ($0 == "") pending = 1; else { pending = 0; print } }
+    END { if (pending) print "" }' "$rc" >"$tmp"
+  cat "$tmp" >"$rc"
+  rm -f "$tmp"
 done
 
 say "Removing Omarchy checkout and Ubuntu layer"

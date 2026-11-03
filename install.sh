@@ -133,17 +133,21 @@ if [[ $(readlink -f /usr/bin/awk) != "$awk_before" ]]; then
 fi
 
 # Herdr goes to ~/.local/bin, where `herdr update` can replace it. An existing herdr is left alone.
-if ! command -v herdr >/dev/null && [[ ! -x $HOME/.local/bin/herdr ]]; then
+# It's an extra: if it can't be downloaded, the rest of the install goes ahead.
+HERDR_BIN=$HOME/.local/bin/herdr
+if ! command -v herdr >/dev/null && [[ ! -x $HERDR_BIN ]]; then
   say "Installing herdr $HERDR_VERSION into ~/.local/bin"
-  mkdir -p "$HOME/.local/bin"
-  curl -fL --progress-bar -o "$HOME/.local/bin/herdr.part" \
-    "https://github.com/herdrdev/herdr/releases/download/$HERDR_VERSION/herdr-linux-x86_64" \
-    || die "herdr download failed."
-  echo "$HERDR_SHA256  $HOME/.local/bin/herdr.part" | sha256sum -c --quiet - \
-    || { rm -f "$HOME/.local/bin/herdr.part"; die "herdr checksum mismatch."; }
-  chmod +x "$HOME/.local/bin/herdr.part"
-  mv "$HOME/.local/bin/herdr.part" "$HOME/.local/bin/herdr"
-  record "$HOME/.local/bin/herdr"
+  mkdir -p "$(dirname "$HERDR_BIN")"
+  if curl -fL --progress-bar -o "$HERDR_BIN.part" \
+      "https://github.com/herdrdev/herdr/releases/download/$HERDR_VERSION/herdr-linux-x86_64" &&
+    echo "$HERDR_SHA256  $HERDR_BIN.part" | sha256sum -c --quiet -; then
+    chmod +x "$HERDR_BIN.part"
+    mv "$HERDR_BIN.part" "$HERDR_BIN"
+    record "$HERDR_BIN"
+  else
+    rm -f "$HERDR_BIN.part"
+    warn "Couldn't install herdr (download or checksum failed). Super+Ctrl+Return needs it; re-run install.sh to retry."
+  fi
 fi
 
 # ---- Omarchy checkout (pinned) ------------------------------------------------
@@ -288,8 +292,23 @@ fi
 RC_LINE='if [ -n "$OMARCHY_PATH" ] && [ -f ~/.local/share/omarchy-ubuntu/shell/herdr.sh ]; then . ~/.local/share/omarchy-ubuntu/shell/herdr.sh; fi # omarchy-ubuntu'
 for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do
   [[ -f $rc ]] || continue
-  grep -qF '# omarchy-ubuntu' "$rc" || printf '\n%s\n' "$RC_LINE" >>"$rc"
+  if ! grep -qF '# omarchy-ubuntu' "$rc"; then
+    printf '\n%s\n' "$RC_LINE" >>"$rc"
+  elif ! grep -qxF "$RC_LINE" "$rc"; then
+    # An older version of the line: replace it in place. Written back with cat so a symlinked rc file
+    # (dotfile managers) keeps its link and permissions.
+    tmp=$(mktemp)
+    awk -v line="$RC_LINE" '/# omarchy-ubuntu$/ { print line; next } { print }' "$rc" >"$tmp"
+    cat "$tmp" >"$rc"
+    rm -f "$tmp"
+  fi
 done
+
+# The herdr binary is downloaded only when missing, so a run that doesn't download it still manages it if
+# an earlier run did (the manifest says so): switching back from this branch then removes it.
+if grep -qxF "$HERDR_BIN" "$MANIFEST" 2>/dev/null && [[ -e $HERDR_BIN ]]; then
+  manage "$HERDR_BIN"
+fi
 
 # ---- fonts --------------------------------------------------------------------
 FONTS=$HOME/.local/share/fonts
