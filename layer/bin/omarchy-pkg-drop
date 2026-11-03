@@ -10,10 +10,11 @@ done
 # (on Ubuntu often part of GNOME). Ask apt what it would remove and refuse the same way.
 sim=$(LC_ALL=C apt-get -s remove -- "${installed[@]}" 2>&1) || { echo "$sim" >&2; exit 1; }
 extra=()
-while read -r name; do
+while read -r verb name _; do
+  [[ $verb == Remv ]] || continue
   name=${name%%:*}
   [[ " ${installed[*]} " == *" $name "* ]] || extra+=("$name")
-done < <(awk '$1 == "Remv" {print $2}' <<<"$sim")
+done <<<"$sim"
 if ((${#extra[@]})); then
   echo "Not removing ${installed[*]}: apt would also remove what needs it: ${extra[*]}" >&2
   exit 1
