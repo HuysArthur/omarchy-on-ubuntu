@@ -8,15 +8,16 @@ Unofficial: not affiliated with Basecamp or the Omarchy project.
 - **Omarchy 4.0.6** (pinned checkout in `~/.local/share/omarchy`): its keybindings, look, window rules,
   themes and its Quickshell shell (bar, menus, notifications, OSD, lock screen) run unmodified.
 - **Ubuntu layer** (`~/.local/share/omarchy-ubuntu`): a read-only `pacman` stand-in backed by dpkg,
-  apt-based `omarchy-update`/`omarchy-pkg-add`, an `awk` -> `gawk` wrapper (Omarchy's scripts need GNU awk;
-  the system-wide awk stays mawk), and stubs for Arch-only commands (limine, plymouth, AUR, snapshots,
+  apt-based `omarchy-update`/`omarchy-pkg-add`/`omarchy-pkg-drop`/`omarchy-pkg-remove`, an `awk` -> `gawk`
+  wrapper (Omarchy's scripts need GNU awk; the system-wide awk stays mawk), and stubs for Arch-only commands (limine, plymouth, AUR, snapshots,
   factory reset).
 - **Screensaver inhibit bridge** (`omarchy-idle-inhibit-bridge`): answers apps that ask over DBus to keep the
   screen awake (browsers during video calls, video players) by holding a Wayland idle inhibitor, the only kind
   Omarchy's shell honours. Nothing else in the session answers those requests.
 - **Patches** (`patches/`): applied to the Omarchy checkout by `install.sh`: a variable named `transient`
-  in the notifications service that Ubuntu's Qt 6.10 QML parser rejects, and the Update > Channel menu
-  (see [Trying a pull request](#trying-a-pull-request)).
+  in the notifications service that Ubuntu's Qt 6.10 QML parser rejects, the Update > Channel menu
+  (see [Trying a pull request](#trying-a-pull-request)), and the app launcher's uninstall action
+  (apt and snap instead of pacman).
 
 ## GNOME stays untouched
 

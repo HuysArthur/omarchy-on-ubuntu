@@ -1,1 +1,12 @@
-omarchy-ubuntu-unsupported
+#!/bin/bash
+# Removes the named packages with apt if they're installed (otherwise ignores them), like Omarchy's pacman version.
+installed=()
+for p in "$@"; do
+  dpkg-query -W -f='${db:Status-Abbrev}' "$p" 2>/dev/null | grep -q '^ii' && installed+=("$p")
+done
+((${#installed[@]})) || exit 0
+if ((EUID == 0)); then
+  apt-get remove -y -- "${installed[@]}"
+else
+  sudo apt-get remove -y -- "${installed[@]}"
+fi
