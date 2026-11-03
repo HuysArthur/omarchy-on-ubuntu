@@ -1,1 +1,4 @@
-omarchy-ubuntu-unsupported
+#!/bin/bash
+# Omarchy's omarchy-dns re-runs itself as root from a fixed, root-owned path that the sudoers rule names
+# (/usr/bin on Arch). install.sh places that copy at /usr/local/libexec/omarchy-dns; run it from there.
+exec /usr/local/libexec/omarchy-dns "$@"

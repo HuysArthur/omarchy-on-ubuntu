@@ -30,6 +30,7 @@ PACKAGES=(
   btop fzf ripgrep bat eza fd-find zoxide fastfetch tree-sitter-cli lazygit neovim
   tesseract-ocr tesseract-ocr-eng zbar-tools qrencode libnotify-bin libxkbcommon-tools
   fonts-noto-color-emoji fonts-noto-cjk fonts-jetbrains-mono git curl xz-utils unzip
+  python3-gi  # omarchy-idle-inhibit-bridge
 )
 
 say() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
@@ -182,6 +183,24 @@ done
 # Lock screen: Omarchy's Quickshell lock reads this PAM stack and won't lock at all without it.
 sudo install -m 0644 -o root -g root "$REPO/config/pam.d/omarchy-lock-password" /etc/pam.d/omarchy-lock-password
 manage /etc/pam.d/omarchy-lock-password
+
+# DNS presets (network panel, Setup > DNS). omarchy-dns re-runs itself as root from a root-owned path that the
+# sudoers rule names; on Arch that's /usr/bin, here a copy outside PATH (the layer's omarchy-dns calls it).
+DNS_HELPER=/usr/local/libexec/omarchy-dns
+tmp=$(mktemp)
+sed "s|^PACKAGED_PATH=.*|PACKAGED_PATH=$DNS_HELPER|" "$OMARCHY_PATH/bin/omarchy-dns" >"$tmp"
+grep -qxF "PACKAGED_PATH=$DNS_HELPER" "$tmp" || die "Omarchy's omarchy-dns no longer sets PACKAGED_PATH; update install.sh."
+sudo install -D -m 0755 -o root -g root "$tmp" "$DNS_HELPER"
+manage "$DNS_HELPER"
+# Omarchy's rule, for Ubuntu's admin group (sudo, not wheel): the stock presets switch without a password,
+# Custom still asks.
+sed -e "s|/usr/bin/omarchy-dns|$DNS_HELPER|g" -e 's|^%wheel |%sudo |' \
+  "$OMARCHY_PATH/etc/sudoers.d/omarchy-dns" >"$tmp"
+grep -q "^%sudo ALL=(root) NOPASSWD: $DNS_HELPER " "$tmp" || die "Omarchy's DNS sudoers rule changed; update install.sh."
+sudo visudo -cqf "$tmp" || die "The DNS sudoers rule doesn't validate."
+sudo install -m 0440 -o root -g root "$tmp" /etc/sudoers.d/omarchy-ubuntu-dns
+manage /etc/sudoers.d/omarchy-ubuntu-dns
+rm -f "$tmp"
 
 # Lock before suspend (lid close). Omarchy's unit points at /usr/bin, where Arch packages the script.
 tmp=$(mktemp)

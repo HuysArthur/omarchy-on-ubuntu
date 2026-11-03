@@ -1,0 +1,36 @@
+diff --git a/bin/omarchy-remove-launcher-entry b/bin/omarchy-remove-launcher-entry
+index a07fa31..5e5f91b 100755
+--- a/bin/omarchy-remove-launcher-entry
++++ b/bin/omarchy-remove-launcher-entry
+@@ -84,11 +84,29 @@ if is_user_desktop_file; then
+   exit 0
+ fi
+ 
+-if package_name="$(pacman -Qqo "$desktop_file" 2>/dev/null | head -1)" && [[ -n $package_name ]]; then
++# dpkg-query -S prints "package[:arch]: path". Lines naming several packages ("a, b: path") or a diversion
++# ("diversion by a from: path") don't give one package to remove, so skip those.
++package_name=
++while IFS= read -r owner_line; do
++  owner="${owner_line%%: /*}"
++  owner="${owner%:*}"
++  if [[ ${owner_line#*: } == "$desktop_file" && $owner =~ ^[a-z0-9][a-z0-9+.-]*$ ]]; then
++    package_name="$owner"
++    break
++  fi
++done < <(dpkg-query -S "$desktop_file" 2>/dev/null)
++
++if [[ -n $package_name ]]; then
+   display_name="${entry_name:-$desktop_name}"
+   quoted_package="$(printf '%q' "$package_name")"
+   quoted_display="$(printf '%q' "$display_name")"
+-  exec omarchy-launch-floating-terminal-with-presentation "echo Uninstalling $quoted_display...; sudo pacman -Rns $quoted_package"
++  exec omarchy-launch-floating-terminal-with-presentation "echo Uninstalling $quoted_display...; sudo apt-get remove $quoted_package"
++fi
++
++snap_name="$(sed -n 's/^X-SnapInstanceName=//p' "$desktop_file" | head -1)"
++if [[ -n $snap_name ]] && omarchy-cmd-present snap; then
++  quoted_snap="$(printf '%q' "$snap_name")"
++  exec omarchy-launch-floating-terminal-with-presentation "sudo snap remove $quoted_snap"
+ fi
+ 
+ if omarchy-cmd-present flatpak && flatpak info "${desktop_file_name%.desktop}" >/dev/null 2>&1; then

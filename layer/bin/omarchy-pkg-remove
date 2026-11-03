@@ -1,1 +1,21 @@
-omarchy-ubuntu-unsupported
+#!/bin/bash
+# Fuzzy-finder TUI for removing installed packages, with apt instead of pacman/yay.
+fzf_args=(
+  --multi
+  --preview 'apt-cache show {1} 2>/dev/null | grep -v "^ \."'
+  --preview-label='alt-p: toggle description, alt-j/k: scroll, tab: multi-select'
+  --preview-label-pos='bottom'
+  --preview-window 'down:65%:wrap'
+  --bind 'alt-p:toggle-preview'
+  --bind 'alt-d:preview-half-page-down,alt-u:preview-half-page-up'
+  --bind 'alt-k:preview-up,alt-j:preview-down'
+  --color 'pointer:red,marker:red'
+)
+
+# Explicitly installed packages, like pacman -Qqe.
+mapfile -t pkg_names < <(apt-mark showmanual | fzf "${fzf_args[@]}")
+
+if ((${#pkg_names[@]})); then
+  sudo apt-get remove -- "${pkg_names[@]}" || exit 1
+  omarchy-show-done
+fi

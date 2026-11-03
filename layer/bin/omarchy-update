@@ -1,5 +1,5 @@
 #!/bin/bash
-# Ubuntu replacement for Omarchy's pacman/AUR update. Omarchy itself stays pinned; see omarchy-ubuntu's README.
+# Ubuntu replacement for Omarchy's pacman/AUR update. Omarchy itself stays pinned; see docs/development.md.
 # Also brings omarchy-ubuntu up to date on its channel (omarchy-channel-set update).
 if [[ ! -t 1 ]]; then
   exec omarchy-launch-floating-terminal-with-presentation omarchy-update "$@"
