@@ -1,1 +1,27 @@
-omarchy-ubuntu-unsupported
+#!/bin/bash
+# Removes the named packages with apt if they're installed (otherwise ignores them), like Omarchy's pacman version.
+installed=()
+for p in "$@"; do
+  dpkg-query -W -f='${db:Status-Abbrev}' "$p" 2>/dev/null | grep -q '^ii' && installed+=("$p")
+done
+((${#installed[@]})) || exit 0
+
+# pacman -Rns refuses when another package needs one of these; apt-get remove -y would remove that package too
+# (on Ubuntu often part of GNOME). Ask apt what it would remove and refuse the same way.
+sim=$(LC_ALL=C apt-get -s remove -- "${installed[@]}" 2>&1) || { echo "$sim" >&2; exit 1; }
+extra=()
+while read -r verb name _; do
+  [[ $verb == Remv ]] || continue
+  name=${name%%:*}
+  [[ " ${installed[*]} " == *" $name "* ]] || extra+=("$name")
+done <<<"$sim"
+if ((${#extra[@]})); then
+  echo "Not removing ${installed[*]}: apt would also remove what needs it: ${extra[*]}" >&2
+  exit 1
+fi
+
+if ((EUID == 0)); then
+  apt-get remove -y -- "${installed[@]}"
+else
+  sudo apt-get remove -y -- "${installed[@]}"
+fi

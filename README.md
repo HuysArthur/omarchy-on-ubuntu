@@ -40,11 +40,14 @@ replaced is restored.
   leak into GNOME.
 - Your existing config files are kept; anything the installer has to replace is backed up first.
 - Hyprland is installed in `/opt/hyprland`, away from Ubuntu's own packages.
+- One thing is shared: DNS. A preset you pick in Omarchy (network panel or Setup > DNS) is system-wide, so
+  GNOME uses it too. It also replaces the DNS servers set on your Wi-Fi and Ethernet connections and rewrites
+  `/etc/systemd/resolved.conf`; uninstalling doesn't undo that. Nothing changes until you pick a preset.
 
 ## What doesn't work
 
 Some Omarchy features depend on Arch Linux: pacman/AUR updates (apt is used instead),
-bootloader/plymouth/hibernation setup, snapper snapshots, factory reset, DNS presets and sudoless Docker.
+bootloader/plymouth/hibernation setup, snapper snapshots and factory reset.
 
 A few apps Omarchy expects aren't in Ubuntu's archive (hyprsunset, gpu-screen-recorder, tensaku,
 localsend, Obsidian). Their menu entries work once you install them yourself.

@@ -9,14 +9,16 @@ Details for people changing this project. Users only need the [README](../README
 - **Omarchy 4.0.6**, a pinned checkout in `~/.local/share/omarchy`: its keybindings, look, window rules,
   themes and Quickshell shell (bar, menus, notifications, OSD, lock screen) run unmodified.
 - **Ubuntu layer** (`~/.local/share/omarchy-ubuntu`): a read-only `pacman` stand-in backed by dpkg,
-  apt-based `omarchy-update`/`omarchy-pkg-add`, an `awk` -> `gawk` wrapper (Omarchy's scripts need GNU awk;
+  apt-based `omarchy-update`/`omarchy-pkg-add`/`omarchy-pkg-drop`/`omarchy-pkg-remove`, an `awk` -> `gawk` wrapper (Omarchy's scripts need GNU awk;
   the system-wide awk stays mawk), and stubs for Arch-only commands (limine, plymouth, AUR, snapshots,
   factory reset).
 - **Screensaver inhibit bridge** (`omarchy-idle-inhibit-bridge`): answers apps that ask over DBus to keep the
   screen awake (browsers during video calls, video players) by holding a Wayland idle inhibitor, the only kind
   Omarchy's shell honours.
 - **Patches** (`patches/`), applied to the Omarchy checkout by `install.sh`: a variable named `transient`
-  in the notifications service that Ubuntu's Qt 6.10 QML parser rejects, and the Update > Channel menu.
+  in the notifications service that Ubuntu's Qt 6.10 QML parser rejects, the Update > Channel menu,
+  the app launcher's uninstall action (apt and snap instead of pacman), and Remove menu entries that would
+  take packages away from GNOME (Fingerprint, Preinstalls).
 
 ## How GNOME is kept separate
 
@@ -24,8 +26,12 @@ Details for people changing this project. Users only need the [README](../README
   so Omarchy's dark mode, icons and fonts never change GNOME.
 - Theme switching does not rewrite VS Code, Claude Code, Obsidian or browser policies (shared with GNOME).
 - Omarchy's XDG autostart entries are not installed (GNOME would run them too).
-- The only file outside your home and `/opt/hyprland` is `/etc/pam.d/omarchy-lock-password`, the PAM
-  stack Omarchy's lock screen authenticates against (GNOME doesn't read it).
+- Outside your home and `/opt/hyprland` it places only `/etc/pam.d/omarchy-lock-password`, the PAM
+  stack Omarchy's lock screen authenticates against (GNOME doesn't read it), and Omarchy's DNS preset helper
+  (`/usr/local/libexec/omarchy-dns` plus `/etc/sudoers.d/omarchy-ubuntu-dns`, so Cloudflare/Google/DHCP switch
+  without a password). DNS is system-wide, so a preset picked in Hyprland applies under GNOME too.
+- `omarchy-pkg-drop` refuses to remove anything beyond the packages it was asked for (pacman's `-Rns` refuses
+  the same way; `apt-get remove -y` would take the dependents along).
 - `install.sh` only creates config files you don't have yet, except `~/.config/hypr/hyprland.lua` and
   `~/.config/uwsm/env`; anything it replaces is backed up to `~/.local/state/omarchy-ubuntu/backup/`.
 
