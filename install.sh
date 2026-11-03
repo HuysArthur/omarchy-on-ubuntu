@@ -7,6 +7,10 @@ REPO=$(cd "$(dirname "$0")" && pwd)
 OMARCHY_REPO=https://github.com/basecamp/omarchy
 OMARCHY_REF=v4.0.6
 NERD_FONTS_VERSION=v3.4.0
+# Herdr (Omarchy's terminal workspace manager, Super+Ctrl+Return) is an Arch package; on Ubuntu we use the
+# static release binary. Checksum from https://herdr.dev/latest.json. herdr updates itself afterwards (herdr update).
+HERDR_VERSION=v0.9.5
+HERDR_SHA256=14d9e8bc8b4a9e0118d77c32266f76d461f09b40342eb23752960bd89f59929d
 
 OMARCHY_PATH=$HOME/.local/share/omarchy
 LAYER=$HOME/.local/share/omarchy-ubuntu
@@ -128,6 +132,24 @@ if [[ $(readlink -f /usr/bin/awk) != "$awk_before" ]]; then
   sudo update-alternatives --set awk "$awk_before" >/dev/null
 fi
 
+# Herdr goes to ~/.local/bin, where `herdr update` can replace it. An existing herdr is left alone.
+# It's an extra: if it can't be downloaded, the rest of the install goes ahead.
+HERDR_BIN=$HOME/.local/bin/herdr
+if ! command -v herdr >/dev/null && [[ ! -x $HERDR_BIN ]]; then
+  say "Installing herdr $HERDR_VERSION into ~/.local/bin"
+  mkdir -p "$(dirname "$HERDR_BIN")"
+  if curl -fL --progress-bar -o "$HERDR_BIN.part" \
+      "https://github.com/herdrdev/herdr/releases/download/$HERDR_VERSION/herdr-linux-x86_64" &&
+    echo "$HERDR_SHA256  $HERDR_BIN.part" | sha256sum -c --quiet -; then
+    chmod +x "$HERDR_BIN.part"
+    mv "$HERDR_BIN.part" "$HERDR_BIN"
+    record "$HERDR_BIN"
+  else
+    rm -f "$HERDR_BIN.part"
+    warn "Couldn't install herdr (download or checksum failed). Super+Ctrl+Return needs it; re-run install.sh to retry."
+  fi
+fi
+
 # ---- Omarchy checkout (pinned) ------------------------------------------------
 say "Fetching Omarchy $OMARCHY_REF into $OMARCHY_PATH"
 # Shallow: the full Omarchy history is well over 1 GB, we only need the pinned release.
@@ -247,7 +269,7 @@ fi
 while IFS= read -r -d '' src; do
   put "$src" "$C/${src#"$OMARCHY_PATH"/config/}" --if-missing
 done < <(find "$OMARCHY_PATH/config/ghostty" "$OMARCHY_PATH/config/btop" "$OMARCHY_PATH/config/omarchy" \
-  "$OMARCHY_PATH/config/imv" "$OMARCHY_PATH/config/lazygit" -type f -print0)
+  "$OMARCHY_PATH/config/imv" "$OMARCHY_PATH/config/lazygit" "$OMARCHY_PATH/config/herdr" -type f -print0)
 
 # Screensaver and About text, as Omarchy's own installer seeds them.
 put "$OMARCHY_PATH/logo.txt" "$C/omarchy/branding/screensaver.txt" --if-missing
@@ -261,6 +283,31 @@ put "$OMARCHY_PATH/config/hyprland-mimeapps.list" "$C/hyprland-mimeapps.list" --
 if [[ ! -e $C/hyprland-xdg-terminals.list ]]; then
   echo com.mitchellh.ghostty.desktop >"$C/hyprland-xdg-terminals.list"
   record "$C/hyprland-xdg-terminals.list"
+fi
+
+# ---- shell --------------------------------------------------------------------
+# Omarchy's herdr layout commands (hdl, hds, hdlm, hsl) and `h`, for bash and zsh. The line only sources them
+# when OMARCHY_PATH is set, i.e. in the Hyprland session; GNOME terminals skip it. Not backed up on purpose:
+# uninstall.sh removes just this line, so later edits to your rc files survive.
+RC_LINE='if [ -n "$OMARCHY_PATH" ] && [ -f ~/.local/share/omarchy-ubuntu/shell/herdr.sh ]; then . ~/.local/share/omarchy-ubuntu/shell/herdr.sh; fi # omarchy-ubuntu'
+for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do
+  [[ -f $rc ]] || continue
+  if ! grep -qF '# omarchy-ubuntu' "$rc"; then
+    printf '\n%s\n' "$RC_LINE" >>"$rc"
+  elif ! grep -qxF "$RC_LINE" "$rc"; then
+    # An older version of the line: replace it in place. Written back with cat so a symlinked rc file
+    # (dotfile managers) keeps its link and permissions.
+    tmp=$(mktemp)
+    awk -v line="$RC_LINE" '/# omarchy-ubuntu$/ { print line; next } { print }' "$rc" >"$tmp"
+    cat "$tmp" >"$rc"
+    rm -f "$tmp"
+  fi
+done
+
+# The herdr binary is downloaded only when missing, so a run that doesn't download it still manages it if
+# an earlier run did (the manifest says so): switching back from this branch then removes it.
+if grep -qxF "$HERDR_BIN" "$MANIFEST" 2>/dev/null && [[ -e $HERDR_BIN ]]; then
+  manage "$HERDR_BIN"
 fi
 
 # ---- fonts --------------------------------------------------------------------
@@ -308,5 +355,6 @@ Log out, click your name on the login screen, use the gear icon to pick
 "Hyprland (Omarchy)", then log in. Pick "Ubuntu" the same way to go back to GNOME.
 
 Press Super+K in Hyprland for the keybindings, Super+Space for the Omarchy menu.
+Super+Ctrl+Return opens herdr (prefix Ctrl+Space), Super+Ctrl+K lists its keys.
 Undo everything with: $REPO/uninstall.sh
 EOF

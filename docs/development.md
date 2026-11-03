@@ -14,6 +14,16 @@ Details for people changing this project. Users only need the [README](../README
   those browsers' Arch package names to what Ubuntu installs), an `awk` -> `gawk` wrapper (Omarchy's scripts need GNU awk;
   the system-wide awk stays mawk), and stubs for Arch-only commands (limine, plymouth, AUR, snapshots,
   factory reset).
+- **Herdr** (Omarchy's terminal workspace manager): the static release binary goes to `~/.local/bin/herdr`
+  (pinned in `install.sh`, self-updates with `herdr update`) unless you already have one, plus Omarchy's
+  tmux-style config if you have none. If the download fails, the install carries on without it.
+  Omarchy's layout commands work in bash and zsh: `hdl <ai> [<ai2>]` (editor + AI + terminal),
+  `hdlm <ai>` (an `hdl` tab per subdirectory), `hsl <n> <cmd>` (n panes running cmd), `hds` (needs `hunk`
+  and `opencode`), and `h` for `herdr`. A line `install.sh` keeps in `~/.bashrc`/`~/.zshrc` (marked
+  `# omarchy-ubuntu`) loads `layer/shell/herdr.sh`, which only does something when `OMARCHY_PATH` is set.
+  To take Omarchy's config over your own: `omarchy-refresh-herdr` (keeps yours as `config.toml.bak.<time>`).
+  Omarchy binds Super+Ctrl+Return among its preinstalled-app bindings, which `config/hypr/hyprland.lua`
+  turns off, so `layer/lua/hypr.lua` binds it again.
 - **Screensaver inhibit bridge** (`omarchy-idle-inhibit-bridge`): answers apps that ask over DBus to keep the
   screen awake (browsers during video calls, video players) by holding a Wayland idle inhibitor, the only kind
   Omarchy's shell honours.
@@ -30,6 +40,9 @@ Details for people changing this project. Users only need the [README](../README
   so Omarchy's dark mode, icons and fonts never change GNOME.
 - Theme switching does not rewrite VS Code, Claude Code, Obsidian or browser policies (shared with GNOME).
 - Omarchy's XDG autostart entries are not installed (GNOME would run them too).
+- Shell additions (the herdr commands) load only when `OMARCHY_PATH` is set, which only the Hyprland session
+  does; GNOME terminals behave as before. The rc files aren't backed up: `uninstall.sh` removes only that line,
+  so other edits survive.
 - Outside your home and `/opt/hyprland` it places only `/etc/pam.d/omarchy-lock-password`, the PAM
   stack Omarchy's lock screen authenticates against (GNOME doesn't read it), and Omarchy's DNS preset helper
   (`/usr/local/libexec/omarchy-dns` plus `/etc/sudoers.d/omarchy-ubuntu-dns`, so Cloudflare/Google/DHCP switch
@@ -87,3 +100,6 @@ apply after logging out and back in.
 
 For a PR to be undone cleanly, `install.sh` must record what it places on every run: use `manage` (see
 `install.sh`) for files, unit files and their `.wants` links, including files outside your home.
+Something placed only once (like the herdr binary, downloaded only when missing) is managed on later runs
+by checking the manifest for it. The `~/.bashrc`/`~/.zshrc` line stays after switching back, but does
+nothing once the layer's `shell/herdr.sh` is gone.

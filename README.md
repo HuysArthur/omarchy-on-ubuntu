@@ -19,6 +19,8 @@ Log out, click the gear icon on the login screen and choose **Hyprland (Omarchy)
 
 - **Super + Space** opens the menu
 - **Super + K** shows every keybinding
+- **Super + Ctrl + Return** opens [herdr](https://herdr.dev), Omarchy's terminal workspace manager
+  (prefix Ctrl+Space, **Super + Ctrl + K** lists its keys)
 
 ## Update
 
@@ -40,6 +42,8 @@ replaced is restored.
   leak into GNOME.
 - Your existing config files are kept; anything the installer has to replace is backed up first.
 - Hyprland is installed in `/opt/hyprland`, away from Ubuntu's own packages.
+- The installer adds one line to `~/.bashrc` and `~/.zshrc` for Omarchy's herdr commands; it only does
+  something in the Omarchy session, and uninstalling removes it.
 - One thing is shared: DNS. A preset you pick in Omarchy (network panel or Setup > DNS) is system-wide, so
   GNOME uses it too. It also replaces the DNS servers set on your Wi-Fi and Ethernet connections and rewrites
   `/etc/systemd/resolved.conf`; uninstalling doesn't undo that. Nothing changes until you pick a preset.

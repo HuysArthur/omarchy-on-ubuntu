@@ -18,3 +18,7 @@ hl.env("PATH", table.concat(path, ":"))
 -- which nothing else in the session answers. Without this, the screensaver starts during video calls.
 -- uwsm-app sends output to /dev/null; systemd-cat keeps the bridge's inhibit/release lines in the journal.
 o.launch_on_start("systemd-cat -t omarchy-idle-inhibit-bridge omarchy-idle-inhibit-bridge")
+
+-- hyprland.lua turns off Omarchy's bindings for apps it preinstalls on Arch, which include herdr's.
+-- install.sh installs herdr, so bind it the way Omarchy does. hypr/bindings.lua can still unbind it.
+o.bind("SUPER + CTRL + RETURN", "Herdr", { omarchy = "terminal-herdr" })
