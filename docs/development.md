@@ -1,6 +1,6 @@
 # Development notes
 
-Details for people changing Annex itself. Users only need the [README](../README.md).
+Details for people changing this project. Users only need the [README](../README.md).
 
 ## What gets installed
 

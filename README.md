@@ -1,10 +1,10 @@
-# Annex
+# Omarchy on Ubuntu
 
-**Omarchy's Hyprland desktop, built onto Ubuntu. GNOME stays exactly where it was.**
+**Run [Omarchy](https://omarchy.org) on Ubuntu 26.04, next to GNOME. No reinstall, no dual boot, no Arch.**
 
-Annex adds a second login session to Ubuntu 26.04 that runs [Omarchy](https://omarchy.org) — its
-keybindings, themes, bar, menus and lock screen — unmodified. Pick it on the login screen when you want
-a tiling desktop; pick "Ubuntu" when you want GNOME back. No reinstall, no dual boot, no Arch.
+This adds a second login session that runs the real Omarchy desktop (Hyprland with its keybindings,
+themes, bar, menus and lock screen), unmodified. Pick it on the login screen when you want Omarchy;
+pick "Ubuntu" when you want GNOME back. Hyprland comes prebuilt, so there's nothing to compile.
 
 > Unofficial: not affiliated with Basecamp or the Omarchy project.
 
@@ -23,7 +23,7 @@ Log out, click the gear icon on the login screen and choose **Hyprland (Omarchy)
 ## Update
 
 Use **Update > Omarchy** in the menu, or run `omarchy-update`. It upgrades your apt packages and brings
-Annex up to date.
+Omarchy on Ubuntu up to date.
 
 ## Uninstall
 
@@ -31,19 +31,19 @@ Annex up to date.
 ./uninstall.sh
 ```
 
-Everything Annex placed is removed or moved to `~/omarchy-ubuntu-removed-<date>/`, and anything it
+Everything the installer placed is removed or moved to `~/omarchy-ubuntu-removed-<date>/`, and anything it
 replaced is restored.
 
 ## Your GNOME is safe
 
-- Annex is a separate session with its own settings, so Omarchy's themes, fonts and dark mode never
+- Omarchy runs in a separate session with its own settings, so Omarchy's themes, fonts and dark mode never
   leak into GNOME.
-- Your existing config files are kept; anything Annex has to replace is backed up first.
+- Your existing config files are kept; anything the installer has to replace is backed up first.
 - Hyprland is installed in `/opt/hyprland`, away from Ubuntu's own packages.
 
 ## What doesn't work
 
-Some Omarchy features depend on Arch Linux: pacman/AUR updates (Annex uses apt instead),
+Some Omarchy features depend on Arch Linux: pacman/AUR updates (apt is used instead),
 bootloader/plymouth/hibernation setup, snapper snapshots, factory reset, DNS presets and sudoless Docker.
 
 A few apps Omarchy expects aren't in Ubuntu's archive (hyprsunset, gpu-screen-recorder, tensaku,
