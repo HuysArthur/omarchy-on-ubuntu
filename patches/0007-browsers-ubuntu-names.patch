@@ -1,0 +1,54 @@
+diff --git a/bin/omarchy-default-browser b/bin/omarchy-default-browser
+index e7ed21d..16099c3 100755
+--- a/bin/omarchy-default-browser
++++ b/bin/omarchy-default-browser
+@@ -13,7 +13,7 @@ if (($# == 0)); then
+   brave-origin.desktop) echo "brave-origin" ;;
+   microsoft-edge.desktop) echo "edge" ;;
+   firefox.desktop) echo "firefox" ;;
+-  zen.desktop) echo "zen" ;;
++  app.zen_browser.zen.desktop) echo "zen" ;;
+   *) echo "$current_browser" ;;
+   esac
+   exit 0
+@@ -26,7 +26,7 @@ brave) desktop_id="brave-browser.desktop"; name="Brave"; glyph=󰖟 ;;
+ brave-origin) desktop_id="brave-origin.desktop"; name="Brave Origin"; glyph=󰖟 ;;
+ edge) desktop_id="microsoft-edge.desktop"; name="Edge"; glyph=󰇩 ;;
+ firefox) desktop_id="firefox.desktop"; name="Firefox"; glyph=󰈹 ;;
+-zen) desktop_id="zen.desktop"; name="Zen"; glyph=󰖟 ;;
++zen) desktop_id="app.zen_browser.zen.desktop"; name="Zen"; glyph=󰖟 ;;
+ *)
+   echo "Usage: omarchy-default-browser <chromium|chrome|brave|brave-origin|edge|firefox|zen>"
+   exit 1
+diff --git a/bin/omarchy-remove-browser b/bin/omarchy-remove-browser
+index 4c7f7ba..abe3182 100755
+--- a/bin/omarchy-remove-browser
++++ b/bin/omarchy-remove-browser
+@@ -60,7 +60,7 @@ firefox)
+   ;;
+ zen)
+   echo "Removing Zen..."
+-  set_fallback_default_browser zen.desktop
++  set_fallback_default_browser app.zen_browser.zen.desktop
+   omarchy-pkg-drop zen-browser-bin
+   ;;
+ *)
+diff --git a/default/omarchy/omarchy-menu.jsonc b/default/omarchy/omarchy-menu.jsonc
+index 3cd67c2..2af8f0c 100644
+--- a/default/omarchy/omarchy-menu.jsonc
++++ b/default/omarchy/omarchy-menu.jsonc
+@@ -146,11 +146,11 @@
+   "setup.default.browser": {"icon":"","label":"Browser","title":"Default Browser"},
+   "setup.default.browser.chromium": {"icon":"","label":"Chromium","when":"omarchy-cmd-present chromium","checked":"[[ \"$(omarchy-default-browser)\" == \"chromium\" ]]","action":"omarchy-default-browser chromium"},
+   "setup.default.browser.chrome": {"icon":"󰊯","label":"Chrome","when":"omarchy-cmd-present google-chrome-stable","checked":"[[ \"$(omarchy-default-browser)\" == \"chrome\" ]]","action":"omarchy-default-browser chrome"},
+-  "setup.default.browser.brave": {"icon":"󰖟","label":"Brave","when":"omarchy-cmd-present brave","checked":"[[ \"$(omarchy-default-browser)\" == \"brave\" ]]","action":"omarchy-default-browser brave"},
+-  "setup.default.browser.brave-origin": {"icon":"󰖟","label":"Brave Origin","when":"omarchy-cmd-present brave-origin","checked":"[[ \"$(omarchy-default-browser)\" == \"brave-origin\" ]]","action":"omarchy-default-browser brave-origin"},
++  "setup.default.browser.brave": {"icon":"󰖟","label":"Brave","when":"omarchy-pkg-present brave-bin","checked":"[[ \"$(omarchy-default-browser)\" == \"brave\" ]]","action":"omarchy-default-browser brave"},
++  "setup.default.browser.brave-origin": {"icon":"󰖟","label":"Brave Origin","when":"omarchy-pkg-present brave-origin-bin","checked":"[[ \"$(omarchy-default-browser)\" == \"brave-origin\" ]]","action":"omarchy-default-browser brave-origin"},
+   "setup.default.browser.edge": {"icon":"󰇩","label":"Edge","when":"omarchy-cmd-present microsoft-edge-stable","checked":"[[ \"$(omarchy-default-browser)\" == \"edge\" ]]","action":"omarchy-default-browser edge"},
+   "setup.default.browser.firefox": {"icon":"","label":"Firefox","when":"omarchy-cmd-present firefox","checked":"[[ \"$(omarchy-default-browser)\" == \"firefox\" ]]","action":"omarchy-default-browser firefox"},
+-  "setup.default.browser.zen": {"icon":"󰖟","label":"Zen","when":"omarchy-cmd-present zen-browser","checked":"[[ \"$(omarchy-default-browser)\" == \"zen\" ]]","action":"omarchy-default-browser zen"},
++  "setup.default.browser.zen": {"icon":"󰖟","label":"Zen","when":"omarchy-pkg-present zen-browser-bin","checked":"[[ \"$(omarchy-default-browser)\" == \"zen\" ]]","action":"omarchy-default-browser zen"},
+   "setup.default.terminal": {"icon":"","label":"Terminal","title":"Default Terminal"},
+   "setup.default.terminal.alacritty": {"icon":"","label":"Alacritty","when":"omarchy-cmd-present alacritty","checked":"[[ \"$(omarchy-default-terminal)\" == \"alacritty\" ]]","action":"omarchy-default-terminal alacritty"},
+   "setup.default.terminal.foot": {"icon":"","label":"Foot","when":"omarchy-cmd-present foot","checked":"[[ \"$(omarchy-default-terminal)\" == \"foot\" ]]","action":"omarchy-default-terminal foot"},

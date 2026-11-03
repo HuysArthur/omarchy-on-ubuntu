@@ -20,6 +20,6 @@ fzf_args=(
 mapfile -t pkg_names < <(apt-cache pkgnames | sort | fzf "${fzf_args[@]}")
 
 if ((${#pkg_names[@]})); then
-  sudo apt-get install -- "${pkg_names[@]}"
+  sudo apt-get install -- "${pkg_names[@]}" || exit 1
   omarchy-show-done
 fi

@@ -2,14 +2,18 @@
 # Omarchy installs a few apps from the AUR (Install > Browser). Ubuntu has no AUR, so these come from where
 # their vendors publish them for Ubuntu: Chrome and Edge as the vendor's .deb (which adds the vendor's apt
 # repository, so apt keeps them updated), Brave from Brave's apt repository, Zen from Flathub.
+# lib/pkg-names.sh maps the AUR names to what gets installed, so Omarchy's menu sees them.
 # Anything else isn't available. Returns false if a package couldn't be added, like Omarchy's version.
 
-installed() { dpkg-query -W -f='${db:Status-Abbrev}' "$1" 2>/dev/null | grep -q '^ii'; }
+# shellcheck source=../lib/pkg-names.sh
+. "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../lib/pkg-names.sh"
 
 # vendor_deb URL: install a vendor's .deb with apt, which also pulls in its dependencies.
 vendor_deb() {
   local dir rc
   dir=$(mktemp -d)
+  # apt reads local .debs as its unprivileged _apt user; mktemp -d is private to us.
+  chmod 755 "$dir"
   curl -fL --progress-bar -o "$dir/package.deb" "$1" && sudo apt-get install -y "$dir/package.deb"
   rc=$?
   rm -rf "$dir"
@@ -19,7 +23,8 @@ vendor_deb() {
 brave_repo() {
   local keyring=/usr/share/keyrings/brave-browser-archive-keyring.gpg
   local list=/etc/apt/sources.list.d/brave-browser-release.list
-  if [[ ! -f $list ]]; then
+  # Brave's own instructions add the same repository as a .sources file.
+  if [[ ! -f $list && ! -f ${list%.list}.sources ]]; then
     sudo curl -fsSLo "$keyring" https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg || return 1
     echo "deb [signed-by=$keyring] https://brave-browser-apt-release.s3.brave.com/ stable main" |
       sudo tee "$list" >/dev/null
@@ -28,27 +33,32 @@ brave_repo() {
 }
 
 flathub_app() {
-  flatpak info "$1" >/dev/null 2>&1 && return 0
+  if ! command -v flatpak >/dev/null; then
+    # Ubuntu doesn't ship Flatpak. Its apps show up in the launcher once the session has picked up
+    # Flatpak's data directories, i.e. after logging in again.
+    omarchy-pkg-add flatpak || return 1
+    echo "Flatpak was installed: log out and back in for Flatpak apps to show up in the launcher."
+  fi
   sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo &&
     sudo flatpak install -y --noninteractive flathub "$1"
 }
 
 for pkg in "$@"; do
+  pkg_installed "$pkg" && continue
   case $pkg in
   google-chrome)
-    installed google-chrome-stable || vendor_deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+    vendor_deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
     ;;
   microsoft-edge-stable-bin)
-    installed microsoft-edge-stable || vendor_deb 'https://go.microsoft.com/fwlink?linkid=2149051&brand=M102'
+    vendor_deb 'https://go.microsoft.com/fwlink?linkid=2149051&brand=M102'
     ;;
-  brave-bin)
-    installed brave-browser || { brave_repo && sudo apt-get install -y brave-browser; }
-    ;;
-  brave-origin-bin)
-    installed brave-origin || { brave_repo && sudo apt-get install -y brave-origin; }
+  brave-bin | brave-origin-bin)
+    src=$(pkg_source "$pkg")
+    brave_repo && sudo apt-get install -y "${src#deb:}"
     ;;
   zen-browser-bin)
-    flathub_app app.zen_browser.zen
+    src=$(pkg_source "$pkg")
+    flathub_app "${src#flatpak:}"
     ;;
   *)
     echo "$pkg comes from the AUR, which isn't available on Ubuntu." >&2

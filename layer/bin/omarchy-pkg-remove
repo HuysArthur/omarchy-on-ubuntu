@@ -16,6 +16,6 @@ fzf_args=(
 mapfile -t pkg_names < <(apt-mark showmanual | fzf "${fzf_args[@]}")
 
 if ((${#pkg_names[@]})); then
-  sudo apt-get remove -- "${pkg_names[@]}"
+  sudo apt-get remove -- "${pkg_names[@]}" || exit 1
   omarchy-show-done
 fi
