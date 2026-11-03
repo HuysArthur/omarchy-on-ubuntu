@@ -8,16 +8,19 @@ Unofficial: not affiliated with Basecamp or the Omarchy project.
 - **Omarchy 4.0.6** (pinned checkout in `~/.local/share/omarchy`): its keybindings, look, window rules,
   themes and its Quickshell shell (bar, menus, notifications, OSD, lock screen) run unmodified.
 - **Ubuntu layer** (`~/.local/share/omarchy-ubuntu`): a read-only `pacman` stand-in backed by dpkg,
-  apt-based `omarchy-update`/`omarchy-pkg-add`/`omarchy-pkg-drop`/`omarchy-pkg-remove`, an `awk` -> `gawk`
-  wrapper (Omarchy's scripts need GNU awk; the system-wide awk stays mawk), and stubs for Arch-only commands (limine, plymouth, AUR, snapshots,
-  factory reset).
+  apt-based `omarchy-update` and package commands (Install > Package and Remove > Package pick from apt),
+  Install > Browser from the vendors' Ubuntu sources (Chrome, Edge, Brave) or Flathub (Zen), an `awk` -> `gawk`
+  wrapper (Omarchy's scripts need GNU awk; the system-wide awk stays mawk), and stubs for Arch-only commands
+  (limine, plymouth, AUR, snapshots, factory reset).
 - **Screensaver inhibit bridge** (`omarchy-idle-inhibit-bridge`): answers apps that ask over DBus to keep the
   screen awake (browsers during video calls, video players) by holding a Wayland idle inhibitor, the only kind
   Omarchy's shell honours. Nothing else in the session answers those requests.
 - **Patches** (`patches/`): applied to the Omarchy checkout by `install.sh`: a variable named `transient`
   in the notifications service that Ubuntu's Qt 6.10 QML parser rejects, the Update > Channel menu
-  (see [Trying a pull request](#trying-a-pull-request)), and the app launcher's uninstall action
-  (apt and snap instead of pacman).
+  (see [Trying a pull request](#trying-a-pull-request)), the app launcher's uninstall action
+  (apt and snap instead of pacman), the browser installer (it skips Omarchy's browser policies under `/etc`
+  and `~/.config/environment.d`, which GNOME would pick up too), and menu entries hidden because they need
+  Arch (see below).
 
 ## GNOME stays untouched
 
@@ -99,7 +102,9 @@ Removes the package, the Omarchy checkout and the layer, moves the configs it pl
 ## Not available on Ubuntu
 
 Omarchy features that need Arch: system updates through pacman/AUR (`omarchy-update` runs apt instead),
-bootloader/plymouth/hibernation setup, snapper snapshots, factory reset.
+bootloader/plymouth/hibernation setup, snapper snapshots, factory reset. These menu entries are hidden:
+Install > AUR, Install > Editor > Emacs, Install > AI > Hermes Desktop and OpenClaw (and both as Setup >
+Default agent), Style > Unlock and Update > Config > Plymouth.
 Some apps Omarchy preinstalls aren't in Ubuntu's archive (hyprsunset night light, gpu-screen-recorder,
 tensaku, localsend, Obsidian); their menu entries won't work until you install them yourself.
 
