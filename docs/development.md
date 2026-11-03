@@ -22,6 +22,8 @@ Details for people changing this project. Users only need the [README](../README
   and `opencode`), and `h` for `herdr`. A line `install.sh` keeps in `~/.bashrc`/`~/.zshrc` (marked
   `# omarchy-ubuntu`) loads `layer/shell/herdr.sh`, which only does something when `OMARCHY_PATH` is set.
   To take Omarchy's config over your own: `omarchy-refresh-herdr` (keeps yours as `config.toml.bak.<time>`).
+  Omarchy binds Super+Ctrl+Return among its preinstalled-app bindings, which `config/hypr/hyprland.lua`
+  turns off, so `layer/lua/hypr.lua` binds it again.
 - **Screensaver inhibit bridge** (`omarchy-idle-inhibit-bridge`): answers apps that ask over DBus to keep the
   screen awake (browsers during video calls, video players) by holding a Wayland idle inhibitor, the only kind
   Omarchy's shell honours.
