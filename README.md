@@ -25,8 +25,11 @@ Unofficial: not affiliated with Basecamp or the Omarchy project.
   so Omarchy's dark mode, icons and fonts never change GNOME.
 - Theme switching does not rewrite VS Code, Claude Code, Obsidian or browser policies (shared with GNOME).
 - Omarchy's XDG autostart entries are not installed (GNOME would run them too).
-- The only file outside your home and `/opt/hyprland` is `/etc/pam.d/omarchy-lock-password`, the PAM
-  stack Omarchy's lock screen authenticates against (GNOME doesn't read it).
+- Outside your home and `/opt/hyprland` it places only `/etc/pam.d/omarchy-lock-password`, the PAM
+  stack Omarchy's lock screen authenticates against (GNOME doesn't read it), and Omarchy's DNS preset helper
+  (`/usr/local/libexec/omarchy-dns` plus `/etc/sudoers.d/omarchy-ubuntu-dns`, so Cloudflare/Google/DHCP switch
+  without a password). Neither changes anything until you use it, but DNS is system-wide: a preset you pick
+  in Hyprland applies under GNOME too.
 - `install.sh` only creates config files you don't have yet, except `~/.config/hypr/hyprland.lua` and
   `~/.config/uwsm/env`; anything it replaces is backed up to `~/.local/state/omarchy-ubuntu/backup/`.
 
@@ -95,7 +98,7 @@ Removes the package, the Omarchy checkout and the layer, moves the configs it pl
 ## Not available on Ubuntu
 
 Omarchy features that need Arch: system updates through pacman/AUR (`omarchy-update` runs apt instead),
-bootloader/plymouth/hibernation setup, snapper snapshots, factory reset, DNS presets, sudoless Docker.
+bootloader/plymouth/hibernation setup, snapper snapshots, factory reset.
 Some apps Omarchy preinstalls aren't in Ubuntu's archive (hyprsunset night light, gpu-screen-recorder,
 tensaku, localsend, Obsidian); their menu entries won't work until you install them yourself.
 
