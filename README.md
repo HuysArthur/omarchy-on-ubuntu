@@ -1,94 +1,29 @@
-# omarchy-on-ubuntu
+# Omarchy on Ubuntu
 
-[Omarchy](https://omarchy.org)'s Hyprland desktop on Ubuntu 26.04, as an extra login session next to GNOME.
-Unofficial: not affiliated with Basecamp or the Omarchy project.
+**Run [Omarchy](https://omarchy.org) on Ubuntu 26.04, next to GNOME. No reinstall, no dual boot, no Arch.**
 
-- **Hyprland 0.56.2 + Quickshell 0.3.2**, compiled once into a self-contained `.deb` under `/opt/hyprland`
-  (no conflicts with Ubuntu's packages), together with `ttfx` 0.5.1 for Omarchy's screensaver.
-- **Omarchy 4.0.6** (pinned checkout in `~/.local/share/omarchy`): its keybindings, look, window rules,
-  themes and its Quickshell shell (bar, menus, notifications, OSD, lock screen) run unmodified.
-- **Ubuntu layer** (`~/.local/share/omarchy-ubuntu`): a read-only `pacman` stand-in backed by dpkg,
-  apt-based `omarchy-update` and package commands (Install > Package and Remove > Package pick from apt),
-  Install > Browser from the vendors' Ubuntu sources (Chrome, Edge, Brave) or Flathub (Zen), an `awk` -> `gawk`
-  wrapper (Omarchy's scripts need GNU awk; the system-wide awk stays mawk), and stubs for Arch-only commands
-  (limine, plymouth, AUR, snapshots, factory reset).
-- **Screensaver inhibit bridge** (`omarchy-idle-inhibit-bridge`): answers apps that ask over DBus to keep the
-  screen awake (browsers during video calls, video players) by holding a Wayland idle inhibitor, the only kind
-  Omarchy's shell honours. Nothing else in the session answers those requests.
-- **Patches** (`patches/`): applied to the Omarchy checkout by `install.sh`: a variable named `transient`
-  in the notifications service that Ubuntu's Qt 6.10 QML parser rejects, the Update > Channel menu
-  (see [Trying a pull request](#trying-a-pull-request)), the app launcher's uninstall action
-  (apt and snap instead of pacman), the browser installer (it skips Omarchy's browser policies under `/etc`
-  and `~/.config/environment.d`, which GNOME would pick up too), and menu entries hidden because they need
-  Arch (see below).
+This adds a second login session that runs the real Omarchy desktop (Hyprland with its keybindings,
+themes, bar, menus and lock screen), unmodified. Pick it on the login screen when you want Omarchy;
+pick "Ubuntu" when you want GNOME back. Hyprland comes prebuilt, so there's nothing to compile.
 
-## GNOME stays untouched
+> Unofficial: not affiliated with Basecamp or the Omarchy project.
 
-- Hyprland is a separate entry on the login screen (gear icon -> "Hyprland (Omarchy)"); "Ubuntu" is still GNOME.
-- The Hyprland session uses its own GNOME-settings database (`~/.config/dconf/hyprland`, via `DCONF_PROFILE`),
-  so Omarchy's dark mode, icons and fonts never change GNOME.
-- Theme switching does not rewrite VS Code, Claude Code, Obsidian or browser policies (shared with GNOME).
-- Omarchy's XDG autostart entries are not installed (GNOME would run them too).
-- Outside your home and `/opt/hyprland` it places only `/etc/pam.d/omarchy-lock-password`, the PAM
-  stack Omarchy's lock screen authenticates against (GNOME doesn't read it), and Omarchy's DNS preset helper
-  (`/usr/local/libexec/omarchy-dns` plus `/etc/sudoers.d/omarchy-ubuntu-dns`, so Cloudflare/Google/DHCP switch
-  without a password). Neither changes anything until you use it, but DNS is system-wide: a preset you pick
-  in Hyprland applies under GNOME too.
-- `install.sh` only creates config files you don't have yet, except `~/.config/hypr/hyprland.lua` and
-  `~/.config/uwsm/env`; anything it replaces is backed up to `~/.local/state/omarchy-ubuntu/backup/`.
-
-## Build the package (once, on any Ubuntu 26.04 machine)
-
-```bash
-sudo apt install podman
-./build.sh            # -> dist/hyprland-opt_<version>_amd64.deb  (first run ~30-60 min)
-```
-
-The build runs in a clean `ubuntu:26.04` container. Versions are pinned in `build/versions.env`.
-Quickshell is tied to the exact Qt version (6.10.2 today); if Ubuntu ships a Qt update, apt holds it back
-until you rebuild and reinstall the `.deb`.
-To move to a newer Hyprland, change `HYPRLAND_TAG` and copy the dependency revisions from that
-tag's `flake.lock`.
-
-## Install (every machine)
+## Install
 
 ```bash
 git clone https://github.com/HuysArthur/omarchy-on-ubuntu && cd omarchy-on-ubuntu
-./install.sh                          # newest .deb in dist/, else downloads it from this repo's release
-./install.sh /path/to/hyprland-opt_0.56.2-2~ubuntu26.04_amd64.deb
+./install.sh
 ```
 
-Then log out and pick "Hyprland (Omarchy)". Super+K shows all keybindings, Super+Space opens the menu.
+Log out, click the gear icon on the login screen and choose **Hyprland (Omarchy)**.
 
-Other machines don't compile: the **Package** workflow (`.github/workflows/package.yml`) builds the `.deb`
-on GitHub whenever a push changes `build/`, and publishes it as release `hyprland-opt-<version>`, which
-`install.sh` downloads (a private repo needs `gh auth login` on the machine). A branch gets a pre-release;
-when the same `build/` reaches `main` it becomes the latest release without building again. Changing
-`build/` means bumping `PKG_REVISION` in `build/versions.env`: a branch that changes `build/` again
-rebuilds its pre-release, but a version already released from `main` is never rebuilt, and the workflow
-fails instead.
+- **Super + Space** opens the menu
+- **Super + K** shows every keybinding
 
-## Trying a pull request
+## Update
 
-Omarchy's **Update > Channel** menu switches this checkout between `main` and an open pull request:
-
-- **Pull request** lists the open PRs (needs a logged-in `gh`). Picking one checks out its branch and
-  re-runs `install.sh` in a terminal.
-- **Stable** goes back to `main` (pulling the latest) and re-runs `install.sh`, which removes whatever the
-  pull request installed and restores anything it had replaced.
-
-**Update > Omarchy** (`omarchy-update`) runs the apt upgrade and then brings this checkout up to date on its
-channel: on Stable it pulls `main`, on a pull request it pulls the branch, and a pull request that has
-been merged or closed goes back to Stable. `install.sh` only re-runs when that changed something. When the
-Hyprland package that `build/versions.env` names is still being built by the Package workflow, it offers to
-wait for that build; if it fails, the checkout goes back to where it was.
-
-The checkout must have no uncommitted changes. Changes to the session environment (`config/uwsm/env`)
-apply after logging out and back in. From a terminal: `omarchy-channel-set stable` or
-`omarchy-channel-set pr 12`.
-
-For a PR to be undone cleanly, `install.sh` must record what it places on every run: use `manage` (see
-`install.sh`) for files, unit files and their `.wants` links, including files outside your home.
+Use **Update > Omarchy** in the menu, or run `omarchy-update`. It upgrades your apt packages and brings
+Omarchy on Ubuntu up to date.
 
 ## Uninstall
 
@@ -96,20 +31,39 @@ For a PR to be undone cleanly, `install.sh` must record what it places on every 
 ./uninstall.sh
 ```
 
-Removes the package, the Omarchy checkout and the layer, moves the configs it placed to
-`~/omarchy-ubuntu-removed-<date>/`, and restores anything it had replaced.
+Everything the installer placed is removed or moved to `~/omarchy-ubuntu-removed-<date>/`, and anything it
+replaced is restored.
 
-## Not available on Ubuntu
+## Your GNOME is safe
 
-Omarchy features that need Arch: system updates through pacman/AUR (`omarchy-update` runs apt instead),
-bootloader/plymouth/hibernation setup, snapper snapshots, factory reset. These menu entries are hidden:
-Install > AUR, Install > Editor > Emacs, Install > AI > Hermes Desktop and OpenClaw (and both as Setup >
+- Omarchy runs in a separate session with its own settings, so Omarchy's themes, fonts and dark mode never
+  leak into GNOME.
+- Your existing config files are kept; anything the installer has to replace is backed up first.
+- Hyprland is installed in `/opt/hyprland`, away from Ubuntu's own packages.
+- One thing is shared: DNS. A preset you pick in Omarchy (network panel or Setup > DNS) is system-wide, so
+  GNOME uses it too. It also replaces the DNS servers set on your Wi-Fi and Ethernet connections and rewrites
+  `/etc/systemd/resolved.conf`; uninstalling doesn't undo that. Nothing changes until you pick a preset.
+
+## What doesn't work
+
+Some Omarchy features depend on Arch Linux: pacman/AUR updates (apt is used instead),
+bootloader/plymouth/hibernation setup, snapper snapshots and factory reset. Their menu entries are hidden:
+Install > AUR, Install > Editor > Emacs, Install > AI > Hermes Desktop and OpenClaw (and both under Setup >
 Default agent), Style > Unlock and Update > Config > Plymouth.
-Some apps Omarchy preinstalls aren't in Ubuntu's archive (hyprsunset night light, gpu-screen-recorder,
-tensaku, localsend, Obsidian); their menu entries won't work until you install them yourself.
+
+Install > Browser gets Chrome and Edge from their vendors' `.deb`, Brave from Brave's apt repository and Zen
+from Flathub, so they stay up to date with the rest of your system.
+
+A few apps Omarchy expects aren't in Ubuntu's archive (hyprsunset, gpu-screen-recorder, tensaku,
+localsend, Obsidian). Their menu entries work once you install them yourself.
+
+## Contributing
+
+How it works, building the Hyprland package, releases and testing pull requests:
+see [docs/development.md](docs/development.md).
 
 ## License
 
-The scripts and configs in this repo are MIT (see `LICENSE`). The `.deb` contains Hyprland and its hyprwm
-libraries (BSD-3-Clause), Quickshell (LGPL-3.0) and ttfx (MIT), built unmodified from the sources pinned in
-`build/versions.env`. Omarchy (MIT) is downloaded by `install.sh`, not included here.
+MIT (see `LICENSE`). The Hyprland package bundles Hyprland and its libraries (BSD-3-Clause),
+Quickshell (LGPL-3.0) and ttfx (MIT), built unmodified from the sources pinned in `build/versions.env`.
+Omarchy (MIT) is downloaded by `install.sh`, not included here.
