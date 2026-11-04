@@ -32,7 +32,7 @@ Read the source of any command with `cat "$(command -v omarchy-<name>)"`; that s
 - `~/.config/hypr/hyprland.lua` and `~/.config/uwsm/env` belong to omarchy-on-ubuntu: they load the Ubuntu layer. `install.sh` replaces them on every run, so never put changes there. The omarchy skill suggests `hyprland.lua` for window rules; here, put them in `~/.config/hypr/looknfeel.lua` (or a file you `require` from it). Keybindings go in `bindings.lua`, as usual.
 - Session environment variables go in `~/.config/uwsm/default`, which the session loads after `uwsm/env`.
 - Everything else in `~/.config/hypr/` and `~/.config/omarchy/` works as the omarchy skill describes.
-- `omarchy refresh config <path>` and **Update > Config** restore Omarchy's defaults as usual; for `hypr/hyprland.lua` and `uwsm/env` they restore omarchy-on-ubuntu's versions instead.
+- `omarchy refresh config <path>` and **Update > Config** restore Omarchy's defaults as usual; for `hypr/hyprland.lua`, `hypr/input.lua`, `hypr/monitors.lua` and `uwsm/env` they restore omarchy-on-ubuntu's versions instead.
 
 ## What GNOME shares
 
@@ -65,8 +65,11 @@ These are Arch-only and print "not available on Ubuntu": the Limine bootloader, 
 
 ## Undoing changes
 
-- `omarchy reinstall configs` puts the default back for every config file omarchy-on-ubuntu seeds from Omarchy, after backing the current ones up to `~/.local/state/omarchy-ubuntu/backup/<date-time>/`. It re-runs the installer, so it asks for the sudo password and takes a minute. Use it instead of `omarchy reinstall`, whose first step (reinstalling packages with pacman) isn't available here.
+Use the smallest reset that undoes the change:
+
 - `omarchy refresh config <path>` resets a single file, keeping a `.bak.<time>` copy next to it.
+- `omarchy refresh hyprland` resets Omarchy's files in `~/.config/hypr/` the same way.
+- **Ask the user before running `omarchy reinstall configs`**, even to undo your own changes. It puts the default back for the config files omarchy-on-ubuntu seeds for the Omarchy session (`~/.config/hypr/`, `~/.config/omarchy/`, `~/.config/uwsm/env` and the like), after backing the current ones up to `~/.local/state/omarchy-ubuntu/reset-backup/<date-time>/`. It needs no sudo or network. Apps GNOME shares (ghostty, btop, lazygit, imv, herdr) keep their configs; reset one of those with `omarchy refresh config <path>`, after telling the user it affects GNOME too. Use it instead of `omarchy reinstall`, whose first step (reinstalling packages with pacman) isn't available here.
 - Every file the installer has replaced is also in `~/.local/state/omarchy-ubuntu/backup/`.
 - The omarchy-on-ubuntu checkout the installer runs from is named in `~/.local/state/omarchy-ubuntu/repo`.
 

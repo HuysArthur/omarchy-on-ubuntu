@@ -1,0 +1,34 @@
+diff --git a/bin/omarchy b/bin/omarchy
+index 8dc282c..9fe00d8 100755
+--- a/bin/omarchy
++++ b/bin/omarchy
+@@ -944,6 +944,11 @@ suggest_command() {
+   return 1
+ }
+ 
++# Omarchy on Ubuntu: commands come from PATH, where the Ubuntu layer's versions go first.
++command_path() {
++  command -v -- "$1" || echo "$OMARCHY_BIN_DIR/$1"
++}
++
+ dispatch_fast_or_help() {
+   local args=("$@")
+   local remaining=()
+@@ -952,7 +957,7 @@ dispatch_fast_or_help() {
+ 
+   if resolve_direct_route "$#" "${args[@]}"; then
+     remaining=("${args[@]:DIRECT_RESOLVED_COUNT}")
+-    binary_path="$OMARCHY_BIN_DIR/$DIRECT_RESOLVED_BINARY"
++    binary_path=$(command_path "$DIRECT_RESOLVED_BINARY")
+ 
+     if remaining_has_help_flag "${remaining[@]}"; then
+       if ! load_command_by_binary "$DIRECT_RESOLVED_BINARY"; then
+@@ -1027,7 +1032,7 @@ dispatch_or_help() {
+       return 0
+     fi
+ 
+-    binary_path="$OMARCHY_BIN_DIR/${COMMAND_BINARY[$key]}"
++    binary_path=$(command_path "${COMMAND_BINARY[$key]}")
+     if [[ ! -x $binary_path ]]; then
+       echo "Binary is missing or not executable: ${COMMAND_BINARY[$key]}" >&2
+       return 127

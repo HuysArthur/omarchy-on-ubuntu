@@ -1,9 +1,9 @@
 #!/bin/bash
 # omarchy:summary=Reset Omarchy user configs to shipped defaults (backs up your versions)
 # Ubuntu version of Omarchy's command, which copies /etc/skel over your home. Here the shipped defaults are the
-# config files install.sh seeds: it runs again with OMARCHY_UBUNTU_RESET_CONFIGS=1, which puts Omarchy's (or
-# omarchy-ubuntu's) default back for each of them instead of keeping yours, and backs yours up to
-# ~/.local/state/omarchy-ubuntu/backup/<time>/ first. Config files Omarchy doesn't ship are left alone.
+# config files install.sh seeds for the Omarchy session: this puts Omarchy's (or omarchy-ubuntu's) default back for
+# each of them, and backs yours up to ~/.local/state/omarchy-ubuntu/reset-backup/<time>/ first. Apps GNOME shares
+# (ghostty, btop, ...) and config files Omarchy doesn't ship are left alone.
 set -euo pipefail
 
 if ((EUID == 0)); then
@@ -11,14 +11,13 @@ if ((EUID == 0)); then
   exit 1
 fi
 
-STATE=$HOME/.local/state/omarchy-ubuntu
-REPO=$(cat "$STATE/repo" 2>/dev/null) || true
-if [[ -z $REPO || ! -x $REPO/install.sh ]]; then
-  echo "No omarchy-ubuntu checkout found. Run install.sh from one first." >&2
-  exit 1
-fi
+# shellcheck source=../lib/configs.sh
+. "$HOME/.local/share/omarchy-ubuntu/lib/configs.sh"
+RESET_CONFIGS=1
 
 echo "Resetting Omarchy user configs to shipped defaults (your versions are backed up)..."
-cd "$REPO"
-# Keep the channel install.sh records (Stable or a pull request) as it was.
-OMARCHY_UBUNTU_CHANNEL=$(cat "$STATE/channel" 2>/dev/null || true) OMARCHY_UBUNTU_RESET_CONFIGS=1 ./install.sh
+for f in "${OWN_CONFIGS[@]}"; do
+  put "$LAYER/config/$f" "$C/$f"
+done
+seed_configs
+echo "Done. Replaced files are in $RESET_BACKUP."

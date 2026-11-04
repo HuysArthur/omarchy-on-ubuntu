@@ -27,7 +27,7 @@ Details for people changing this project. Users only need the [README](../README
 - **Screensaver inhibit bridge** (`omarchy-idle-inhibit-bridge`): answers apps that ask over DBus to keep the
   screen awake (browsers during video calls, video players) by holding a Wayland idle inhibitor, the only kind
   Omarchy's shell honours.
-- **Patches** (`patches/`), applied to the Omarchy checkout by `install.sh`: a variable named `transient`
+- **Patches** (`patches/`), applied to the Omarchy checkout by `install.sh`: `omarchy <command>` looks commands up on PATH, so it reaches the layer's versions (upstream it only runs the ones next to it); a variable named `transient`
   in the notifications service that Ubuntu's Qt 6.10 QML parser rejects, the Update > Channel menu,
   the app launcher's uninstall action (apt and snap instead of pacman), Remove menu entries that would
   take packages away from GNOME (Fingerprint, Preinstalls), the browser installer (it skips Omarchy's browser
@@ -42,12 +42,16 @@ Details for people changing this project. Users only need the [README](../README
   `/usr/share/omarchy`, which files `install.sh` overwrites, what GNOME shares, how to tell the sessions apart,
   what's Arch-only, and where to report bugs. Those folders are shared with GNOME, so agents see the skills
   there too. When changing how the port works, update that skill.
-- **Resetting configs**: `omarchy-reinstall-configs` (`omarchy reinstall configs`; Omarchy's skill uses it to undo
-  an agent's changes) re-runs `install.sh` with `OMARCHY_UBUNTU_RESET_CONFIGS=1`. That makes `put --if-missing`
-  and the generated `hypr/input.lua`, `hypr/monitors.lua` and `hyprland-xdg-terminals.list` replace your file,
-  backing it up as usual. `omarchy-refresh-config` (also behind **Update > Config > Hyprland**) restores
-  `hypr/hyprland.lua` and `uwsm/env` from the copy of `config/` that `install.sh` puts in the layer, since
-  Omarchy's own would start the session without the layer; other files go to Omarchy's command.
+- **Resetting configs**: `omarchy-reinstall-configs` (`omarchy reinstall configs`; the `omarchy-ubuntu` skill
+  has agents ask before using it, and try `omarchy refresh` first) places `layer/lib/configs.sh`'s files with
+  `RESET_CONFIGS=1`, without `install.sh`, so it needs no sudo, network or checkout. That makes
+  `put --if-missing` replace your file. `put --keep` files, the apps GNOME shares (ghostty, btop, imv, lazygit,
+  herdr), are never replaced. Your edited versions of files we seeded go to
+  `~/.local/state/omarchy-ubuntu/reset-backup/`, not `backup/`, which `uninstall.sh` restores as what was there
+  before the install; `uninstall.sh` moves `reset-backup/` aside. `omarchy-refresh-config` (also behind
+  **Update > Config > Hyprland**) restores `hypr/hyprland.lua`, `uwsm/env` and the generated `hypr/input.lua`
+  and `hypr/monitors.lua` from the layer's `config/`, since Omarchy's own would start the session without the
+  layer or lose this machine's keyboard layout and scale; other files go to Omarchy's command.
   `omarchy reinstall pkgs` is a stub (it would run pacman).
 
 ## How GNOME is kept separate

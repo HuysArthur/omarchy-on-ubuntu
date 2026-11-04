@@ -12,17 +12,11 @@ NERD_FONTS_VERSION=v3.4.0
 HERDR_VERSION=v0.9.5
 HERDR_SHA256=14d9e8bc8b4a9e0118d77c32266f76d461f09b40342eb23752960bd89f59929d
 
-OMARCHY_PATH=$HOME/.local/share/omarchy
-LAYER=$HOME/.local/share/omarchy-ubuntu
-STATE=$HOME/.local/state/omarchy-ubuntu
-BACKUP=$STATE/backup/$(date +%Y%m%d-%H%M%S)
-MANIFEST=$STATE/manifest
+# shellcheck source=layer/lib/configs.sh
+. "$REPO/layer/lib/configs.sh"
 # Files every run places (a subset of MANIFEST). A run that no longer places one removes it, so switching
 # back from a pull request (omarchy-channel-set) undoes what it installed.
 MANAGED=$STATE/managed
-# Set by omarchy-reinstall-configs: put Omarchy's default back for every config file this script seeds, instead of
-# only creating the ones you don't have. Replaced files are backed up as usual.
-RESET_CONFIGS=${OMARCHY_UBUNTU_RESET_CONFIGS:-}
 
 # Desktop pieces Omarchy expects, by their Ubuntu names. Nothing here replaces or reconfigures GNOME.
 PACKAGES=(
@@ -40,18 +34,22 @@ say() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33mwarning:\033[0m %s\n' "$*" >&2; }
 die() { printf '\033[1;31merror:\033[0m %s\n' "$*" >&2; exit 1; }
 
-record() { mkdir -p "$STATE"; grep -qxF "$1" "$MANIFEST" 2>/dev/null || echo "$1" >>"$MANIFEST"; }
-
-backup() {
-  local rel=${1#"$HOME"/}
-  mkdir -p "$BACKUP/$(dirname "$rel")"
-  cp -a "$1" "$BACKUP/$rel"
-}
-
 # manage PATH: PATH is placed on every run; prune removes it once a run stops placing it.
 manage() {
   record "$1"
   grep -qxF "$1" "$MANAGED.new" 2>/dev/null || echo "$1" >>"$MANAGED.new"
+}
+
+# forget PATH: stop tracking PATH (it's yours now), so prune and uninstall.sh leave it alone.
+forget() {
+  local list tmp
+  for list in "$MANIFEST" "$MANAGED"; do
+    [[ -f $list ]] || continue
+    tmp=$(mktemp)
+    grep -vxF -- "$1" "$list" >"$tmp" || true
+    cat "$tmp" >"$list"
+    rm -f "$tmp"
+  done
 }
 
 # Remove what the previous run managed and this one didn't, restoring what it had replaced.
@@ -72,25 +70,13 @@ prune() {
       for dir in $(ls -1d "$STATE"/backup/*/ 2>/dev/null | sort); do
         [[ -e $dir/$rel || -L $dir/$rel ]] && { cp -a "$dir/$rel" "$path"; break; }
       done
+      # Folders made just for a skill link (agents you don't have) go with it.
+      [[ $path != */skills/* ]] || (cd "$HOME" && rmdir -p --ignore-fail-on-non-empty "$(dirname "$rel")")
     else
       sudo rm -f "$path"
     fi
   done <"$MANAGED"
   [[ -z $units ]] || systemctl --user daemon-reload
-}
-
-# put SRC DEST [--if-missing]: copy a config file into place, backing up whatever was there.
-# --if-missing leaves an existing file alone, unless configs are being reset.
-put() {
-  local src=$1 dest=$2 mode=${3:-}
-  if [[ -e $dest || -L $dest ]]; then
-    [[ $mode == --if-missing && -z $RESET_CONFIGS ]] && return 0
-    cmp -s "$src" "$dest" && { record "$dest"; return 0; }
-    backup "$dest"
-  fi
-  mkdir -p "$(dirname "$dest")"
-  cp "$src" "$dest"
-  record "$dest"
 }
 
 # ---- preflight ----------------------------------------------------------------
@@ -176,16 +162,15 @@ done
 say "Installing the Ubuntu layer into $LAYER"
 rm -rf "$LAYER"
 cp -a "$REPO/layer" "$LAYER"
-# omarchy-ubuntu's own config files, for omarchy-refresh-config to restore (hypr/hyprland.lua, uwsm/env).
+# omarchy-ubuntu's own config files, for omarchy-refresh-config to restore (hypr/hyprland.lua, uwsm/env). seed_configs
+# adds the ones generated for this machine.
 cp -a "$REPO/config" "$LAYER/config"
 
 # ---- configs ------------------------------------------------------------------
 say "Placing configs (replaced files are backed up to $BACKUP)"
-C=$HOME/.config
 
-# Ours: session environment, Hyprland entry point, separate dconf profile.
 rm -f "$MANAGED.new"
-for f in uwsm/env hypr/hyprland.lua dconf/hyprland.profile; do
+for f in "${OWN_CONFIGS[@]}"; do
   put "$REPO/config/$f" "$C/$f"
   manage "$C/$f"
 done
@@ -230,66 +215,7 @@ if [[ ! -e $C/dconf/hyprland && -f $C/dconf/user ]]; then
   record "$C/dconf/hyprland"
 fi
 
-# Omarchy's personal-override templates: only when you don't have your own yet.
-for f in bindings looknfeel autostart; do
-  put "$OMARCHY_PATH/config/hypr/$f.lua" "$C/hypr/$f.lua" --if-missing
-done
-
-if [[ ! -e $C/hypr/input.lua || -n $RESET_CONFIGS ]]; then
-  # shellcheck disable=SC1091
-  . /etc/default/keyboard 2>/dev/null || true
-  tmp=$(mktemp)
-  cat >"$tmp" <<EOF
--- Personal input overrides; settings here replace Omarchy's defaults.
--- Keyboard layout taken from Ubuntu (/etc/default/keyboard) at install time.
--- See $OMARCHY_PATH/config/hypr/input.lua for more examples.
-hl.config({
-  input = {
-    kb_layout = "${XKBLAYOUT:-us}",
-    kb_variant = "${XKBVARIANT:-}",
-    kb_options = "compose:caps${XKBOPTIONS:+,$XKBOPTIONS}",
-  },
-})
-EOF
-  put "$tmp" "$C/hypr/input.lua"
-  rm -f "$tmp"
-fi
-
-if [[ ! -e $C/hypr/monitors.lua || -n $RESET_CONFIGS ]]; then
-  # Omarchy assumes HiDPI (scale 2). Use 1 when every connected screen is at most 1920px wide.
-  max_width=0
-  for status in /sys/class/drm/card*-*/status; do
-    [[ $(<"$status") == connected ]] || continue
-    w=$(head -1 "$(dirname "$status")/modes" 2>/dev/null | cut -dx -f1)
-    [[ $w =~ ^[0-9]+$ ]] && ((w > max_width)) && max_width=$w
-  done
-  tmp=$(mktemp)
-  sed -e 's/^local omarchy_gdk_scale = .*/local omarchy_gdk_scale = '"$( ((max_width > 1920)) && echo 2 || echo 1)"'/' \
-      -e 's/^local omarchy_monitor_scale = .*/local omarchy_monitor_scale = '"$( ((max_width > 1920)) && echo '"auto"' || echo 1)"'/' \
-      "$OMARCHY_PATH/config/hypr/monitors.lua" >"$tmp"
-  put "$tmp" "$C/hypr/monitors.lua"
-  rm -f "$tmp"
-fi
-
-# Omarchy app configs, only where you have none. (config/autostart is skipped on purpose: GNOME would run it too.)
-while IFS= read -r -d '' src; do
-  put "$src" "$C/${src#"$OMARCHY_PATH"/config/}" --if-missing
-done < <(find "$OMARCHY_PATH/config/ghostty" "$OMARCHY_PATH/config/btop" "$OMARCHY_PATH/config/omarchy" \
-  "$OMARCHY_PATH/config/imv" "$OMARCHY_PATH/config/lazygit" "$OMARCHY_PATH/config/herdr" -type f -print0)
-
-# Screensaver and About text, as Omarchy's own installer seeds them.
-put "$OMARCHY_PATH/logo.txt" "$C/omarchy/branding/screensaver.txt" --if-missing
-put "$OMARCHY_PATH/icon.txt" "$C/omarchy/branding/about.txt" --if-missing
-
-# Portal choice (screen sharing, file pickers) for the Hyprland session; only read when the desktop is Hyprland.
-put /opt/hyprland/share/xdg-desktop-portal/hyprland-portals.conf "$C/xdg-desktop-portal/hyprland-portals.conf" --if-missing
-
-# Default apps and terminal for the Hyprland session only (desktop-specific files GNOME ignores).
-put "$OMARCHY_PATH/config/hyprland-mimeapps.list" "$C/hyprland-mimeapps.list" --if-missing
-tmp=$(mktemp)
-echo com.mitchellh.ghostty.desktop >"$tmp"
-put "$tmp" "$C/hyprland-xdg-terminals.list" --if-missing
-rm -f "$tmp"
+seed_configs
 
 # ---- agent skills -------------------------------------------------------------
 # Omarchy's skills teach coding agents how this desktop is put together (Hyprland, the bar, plugins, themes,
@@ -308,12 +234,14 @@ for skill in "$OMARCHY_PATH"/default/agents/skills/*/ "$LAYER"/agents/skills/*/;
   [[ -f $skill/SKILL.md ]] || continue
   for dir in "${skill_dirs[@]}"; do
     link=$dir/${skill##*/}
-    # A skill of yours by the same name stays; ours always links to the same place.
+    # A skill of yours by the same name stays, even where an earlier run linked ours; ours always links to the
+    # same place.
     if [[ -e $link || -L $link ]] && [[ $(readlink "$link") != "$skill" ]]; then
       warn "Not linking the ${skill##*/} skill: $link already exists."
+      forget "$link"
       continue
     fi
-    mkdir -p "$dir"
+    mkdir -p "$dir" || { warn "Not linking the ${skill##*/} skill: can't create $dir."; continue; }
     ln -sfn "$skill" "$link"
     manage "$link"
   done
