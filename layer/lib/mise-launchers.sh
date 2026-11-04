@@ -12,8 +12,8 @@ if [[ ! -f $list ]]; then
   exit 1
 fi
 
-# Omarchy's launchers are the only files there that start a line with this.
-omarchy_launcher() { [[ -f $1 && ! -L $1 ]] && grep -q '^mise use -g' "$1"; }
+# shellcheck source=launchers.sh
+. "$(dirname "${BASH_SOURCE[0]}")/launchers.sh"
 
 # Called by install/user/mise.sh for each tool, with Omarchy's arguments: <package> [command-name [bin-name]].
 omarchy-mise-install() {

@@ -1,0 +1,66 @@
+#!/bin/bash
+# Installs herdr's status and session-restore integration for the coding agents you use, however you installed
+# them. Omarchy (from 4.5) does this from a mise postinstall hook, so only for agents mise installs; an agent
+# you installed with its own installer (Claude Code's native one, say) would miss out.
+#
+# An agent counts once its config folder exists, which it makes on first run: agents you haven't used get it
+# the next time this runs (install.sh, omarchy-update). It never touches an integration you installed yourself;
+# the ones it installs are listed in ~/.local/state/omarchy-ubuntu/herdr-integrations and kept current.
+# The hooks do nothing outside herdr, so GNOME, which shares these folders, isn't affected.
+#   omarchy-ubuntu-herdr-integrations           install or update
+#   omarchy-ubuntu-herdr-integrations --remove  uninstall the ones it installed (uninstall.sh)
+set -uo pipefail
+
+LIST=$HOME/.local/state/omarchy-ubuntu/herdr-integrations
+
+herdr=$(command -v herdr || echo "$HOME/.local/bin/herdr")
+[[ -x $herdr ]] || exit 0
+
+if [[ ${1:-} == --remove ]]; then
+  [[ -f $LIST ]] || exit 0
+  while IFS= read -r target; do
+    "$herdr" integration uninstall "$target" >/dev/null 2>&1 ||
+      echo "Could not remove the herdr integration for $target" >&2
+  done <"$LIST"
+  rm -f "$LIST"
+  exit 0
+fi
+
+# Omarchy's agents (omarchy-agent-integrate-herdr in Omarchy 4.5): herdr target and the folder the agent makes.
+config=$HOME/.config
+targets=(
+  "claude ${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+  "codex ${CODEX_HOME:-$HOME/.codex}"
+  "opencode $config/opencode"
+  "pi $HOME/.pi/agent"
+  "omp $HOME/.omp/agent"
+  "grok ${GROK_HOME:-$HOME/.grok}"
+  "copilot $HOME/.copilot"
+  "cursor $HOME/.cursor"
+  "qwen $HOME/.qwen"
+  "antigravity-cli $HOME/.gemini/config"
+  "devin $config/devin"
+  "kilo $config/kilo"
+  "kimi $HOME/.kimi-code"
+)
+
+status=$("$herdr" integration status 2>/dev/null) || exit 0
+mkdir -p "$(dirname "$LIST")"
+touch "$LIST"
+
+for entry in "${targets[@]}"; do
+  target=${entry%% *} dir=${entry#* }
+  [[ -d $dir ]] || continue
+  # herdr prints "<target>: not installed (...)" or "<target>: current (v11) (...)"; older herdr may not know it.
+  state=$(grep -m1 "^$target: " <<<"$status") || continue
+  if [[ $state != "$target: not installed"* ]] && ! grep -qxF "$target" "$LIST"; then
+    continue # yours
+  fi
+  # herdr reports to stdout; keep it quiet, and only warn on failure.
+  if "$herdr" integration install "$target" >/dev/null; then
+    grep -qxF "$target" "$LIST" || echo "$target" >>"$LIST"
+  else
+    echo "Could not install the herdr integration for $target" >&2
+  fi
+done
+exit 0
