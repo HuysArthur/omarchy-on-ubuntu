@@ -31,6 +31,7 @@ PACKAGES=(
   tesseract-ocr tesseract-ocr-eng zbar-tools qrencode libnotify-bin libxkbcommon-tools
   fonts-noto-color-emoji fonts-noto-cjk fonts-jetbrains-mono git curl xz-utils unzip
   python3-gi  # omarchy-idle-inhibit-bridge
+  nodejs  # mise needs a node on PATH to install the npm-based coding agents
 )
 
 say() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
@@ -330,31 +331,38 @@ fi
 # if it fails, the install goes ahead without the agents.
 if ! command -v mise >/dev/null; then
   say "Installing mise from its PPA (sudo)"
-  sudo apt-get install -y software-properties-common && sudo add-apt-repository -y ppa:jdxcode/mise &&
-    sudo apt-get install -y mise ||
+  if ! { sudo apt-get install -y software-properties-common && sudo add-apt-repository -y ppa:jdxcode/mise &&
+    sudo apt-get install -y mise; }; then
     warn "Couldn't install mise. Omarchy's coding agents need it; re-run install.sh to retry."
+    # Leave no source behind: the apt update this script and omarchy-update depend on would fail on a broken PPA.
+    sudo add-apt-repository -y --remove ppa:jdxcode/mise 2>/dev/null || true
+  fi
 fi
 # shellcheck source=layer/lib/launchers.sh
 . "$LAYER/lib/launchers.sh"
-# A launcher you've since replaced with your own install (an agent's own installer writes the same path) is
-# yours now: forget it, so that neither this run's cleanup nor uninstall.sh removes it.
+# A launcher from an earlier run stays managed while it's still ours: lib/mise-launchers.sh doesn't report every
+# one again (Omarchy's list skips cursor-agent and muse once they exist). One you've since replaced with your own
+# install (an agent's own installer writes the same path) is yours now: forget it, so that neither this run's
+# cleanup nor uninstall.sh removes it.
 LAUNCHERS=$STATE/agent-launchers
+: >"$LAUNCHERS.new"
+keep_launcher() {
+  manage "$1"
+  grep -qxF "$1" "$LAUNCHERS.new" || echo "$1" >>"$LAUNCHERS.new"
+}
 if [[ -f $LAUNCHERS ]]; then
   while IFS= read -r launcher; do
-    if [[ -e $launcher || -L $launcher ]] && ! omarchy_launcher "$launcher"; then
-      forget "$launcher"
-    fi
+    [[ -e $launcher || -L $launcher ]] || continue
+    if omarchy_launcher "$launcher"; then keep_launcher "$launcher"; else forget "$launcher"; fi
   done <"$LAUNCHERS"
 fi
-: >"$LAUNCHERS.new"
 if command -v mise >/dev/null; then
   say "Installing Omarchy's coding-agent launchers into ~/.local/bin"
   # Omarchy keeps Cursor's install options in /etc/mise/conf.d; mise reads the same file from your config too.
   put "$OMARCHY_PATH/etc/mise/conf.d/omarchy.toml" "$C/mise/conf.d/omarchy.toml"
   manage "$C/mise/conf.d/omarchy.toml"
   while IFS= read -r launcher; do
-    manage "$launcher"
-    echo "$launcher" >>"$LAUNCHERS.new"
+    keep_launcher "$launcher"
   done < <(PATH="$LAYER/bin:$OMARCHY_PATH/bin:$PATH" OMARCHY_PATH="$OMARCHY_PATH" bash "$LAYER/lib/mise-launchers.sh" ||
     warn "Some agent launchers couldn't be installed (see above).")
 fi

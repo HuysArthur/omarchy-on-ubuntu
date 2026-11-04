@@ -5,7 +5,8 @@
 #
 # An agent counts once its config folder exists, which it makes on first run: agents you haven't used get it
 # the next time this runs (install.sh, omarchy-update). It never touches an integration you installed yourself;
-# the ones it installs are listed in ~/.local/state/omarchy-ubuntu/herdr-integrations and kept current.
+# the ones it installs are listed in ~/.local/state/omarchy-ubuntu/herdr-integrations and kept current. One you
+# remove with herdr integration uninstall stays on that list, which keeps it from coming back.
 # The hooks do nothing outside herdr, so GNOME, which shares these folders, isn't affected.
 #   omarchy-ubuntu-herdr-integrations           install or update
 #   omarchy-ubuntu-herdr-integrations --remove  uninstall the ones it installed (uninstall.sh)
@@ -53,9 +54,13 @@ for entry in "${targets[@]}"; do
   [[ -d $dir ]] || continue
   # herdr prints "<target>: not installed (...)" or "<target>: current (v11) (...)"; older herdr may not know it.
   state=$(grep -m1 "^$target: " <<<"$status") || continue
-  if [[ $state != "$target: not installed"* ]] && ! grep -qxF "$target" "$LIST"; then
-    continue # yours
-  fi
+  listed=
+  grep -qxF "$target" "$LIST" && listed=1
+  case $state in
+  "$target: current"*) continue ;;
+  "$target: not installed"*) [[ -z $listed ]] || continue ;; # you removed it
+  *) [[ -n $listed ]] || continue ;;                         # yours
+  esac
   # herdr reports to stdout; keep it quiet, and only warn on failure.
   if "$herdr" integration install "$target" >/dev/null; then
     grep -qxF "$target" "$LIST" || echo "$target" >>"$LIST"
