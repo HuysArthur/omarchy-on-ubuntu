@@ -3,7 +3,7 @@
 # install/user/mise.sh, so it follows the pinned release. Each launcher is a small script in ~/.local/bin that
 # installs its tool with mise on first use. A command you already have from somewhere else (apt, npm, a vendor
 # installer such as Claude Code's) is left alone. Prints the path of each launcher it wrote, for install.sh to
-# manage. Needs OMARCHY_PATH, Omarchy's bin/ on PATH and mise.
+# manage, and exits 1 if any failed. Needs OMARCHY_PATH, Omarchy's bin/ on PATH and mise.
 set -uo pipefail
 
 list=$OMARCHY_PATH/install/user/mise.sh
@@ -14,6 +14,8 @@ fi
 
 # shellcheck source=launchers.sh
 . "$(dirname "${BASH_SOURCE[0]}")/launchers.sh"
+
+failed=0
 
 # Called by install/user/mise.sh for each tool, with Omarchy's arguments: <package> [command-name [bin-name]].
 omarchy-mise-install() {
@@ -27,8 +29,9 @@ omarchy-mise-install() {
   while IFS= read -r found; do
     [[ $found == "$launcher" ]] || return 0
   done < <(type -aP "$name")
-  "$OMARCHY_PATH/bin/omarchy-mise-install" "$@" && echo "$launcher"
+  if "$OMARCHY_PATH/bin/omarchy-mise-install" "$@"; then echo "$launcher"; else failed=1; fi
 }
 
 # shellcheck source=/dev/null
 source "$list"
+exit "$failed"
