@@ -20,10 +20,23 @@ Details for people changing this project. Users only need the [README](../README
   Omarchy's layout commands work in bash and zsh: `hdl <ai> [<ai2>]` (editor + AI + terminal),
   `hdlm <ai>` (an `hdl` tab per subdirectory), `hsl <n> <cmd>` (n panes running cmd), `hds` (needs `hunk`
   and `opencode`), and `h` for `herdr`. A line `install.sh` keeps in `~/.bashrc`/`~/.zshrc` (marked
-  `# omarchy-ubuntu`) loads `layer/shell/herdr.sh`, which only does something when `OMARCHY_PATH` is set.
+  `# omarchy-ubuntu`) loads `layer/shell/omarchy.sh` (herdr's commands and the agent shortcuts), which only
+  does something when `OMARCHY_PATH` is set.
   To take Omarchy's config over your own: `omarchy-refresh-herdr` (keeps yours as `config.toml.bak.<time>`).
   Omarchy binds Super+Ctrl+Return among its preinstalled-app bindings, which `config/hypr/hyprland.lua`
   turns off, so `layer/lua/hypr.lua` binds it again.
+- **Coding agents**: mise from its PPA (`ppa:jdxcode/mise`; it isn't in Ubuntu's archive), unless you already
+  have a `mise`, and Omarchy's agent launchers in `~/.local/bin` (`claude`, `codex`, `opencode`, `gemini`,
+  `copilot`, `crush`, `grok`, `pi`, `omp`, `cursor-agent`, `muse`, plus `gh`, `playwright`, `ghui` and
+  `hunk`): small scripts that install their tool with `mise use -g` on first run. `layer/lib/mise-launchers.sh`
+  runs Omarchy's own list (`install/user/mise.sh`, which also sets mise's `upgrade.auto_prune false`) and skips
+  any command you already have elsewhere on PATH or at that path (Claude Code's installer links
+  `~/.local/bin/claude`). Omarchy's Cursor options go in `~/.config/mise/conf.d/omarchy.toml` (upstream:
+  `/etc/mise/conf.d`). That makes **Setup > Defaults > Agent**, `omarchy agent`, `omarchy agent prompt` and
+  Super+Shift+Ctrl+A work. `omarchy-update` runs Omarchy's `omarchy-update-mise`, and the shell line also
+  loads Omarchy's `a`, `c`, `cx`, `cy` and `mup` aliases (`layer/shell/agents.sh`). Like herdr, this is an
+  extra: if mise can't be installed, the install carries on without it. `uninstall.sh` removes the launchers
+  but leaves mise and what it downloaded (`~/.local/share/mise`, `~/.config/mise/config.toml`).
 - **Screensaver inhibit bridge** (`omarchy-idle-inhibit-bridge`): answers apps that ask over DBus to keep the
   screen awake (browsers during video calls, video players) by holding a Wayland idle inhibitor, the only kind
   Omarchy's shell honours.
@@ -46,7 +59,8 @@ Details for people changing this project. Users only need the [README](../README
 - Outside your home and `/opt/hyprland` it places only `/etc/pam.d/omarchy-lock-password`, the PAM
   stack Omarchy's lock screen authenticates against (GNOME doesn't read it), and Omarchy's DNS preset helper
   (`/usr/local/libexec/omarchy-dns` plus `/etc/sudoers.d/omarchy-ubuntu-dns`, so Cloudflare/Google/DHCP switch
-  without a password). DNS is system-wide, so a preset picked in Hyprland applies under GNOME too.
+  without a password). DNS is system-wide, so a preset picked in Hyprland applies under GNOME too. It also
+  adds mise's PPA to apt's sources, and like the apt packages it installs, that stays after uninstalling.
 - `omarchy-pkg-drop` refuses to remove anything beyond the packages it was asked for (pacman's `-Rns` refuses
   the same way; `apt-get remove -y` would take the dependents along).
 - `install.sh` only creates config files you don't have yet, except `~/.config/hypr/hyprland.lua` and
@@ -101,5 +115,5 @@ apply after logging out and back in.
 For a PR to be undone cleanly, `install.sh` must record what it places on every run: use `manage` (see
 `install.sh`) for files, unit files and their `.wants` links, including files outside your home.
 Something placed only once (like the herdr binary, downloaded only when missing) is managed on later runs
-by checking the manifest for it. The `~/.bashrc`/`~/.zshrc` line stays after switching back, but does
-nothing once the layer's `shell/herdr.sh` is gone.
+by checking the manifest for it. The `~/.bashrc`/`~/.zshrc` line is rewritten to the version the branch
+you switch to installs, and does nothing if the layer file it names is gone.

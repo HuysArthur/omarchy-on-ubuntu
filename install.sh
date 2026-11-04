@@ -286,10 +286,11 @@ if [[ ! -e $C/hyprland-xdg-terminals.list ]]; then
 fi
 
 # ---- shell --------------------------------------------------------------------
-# Omarchy's herdr layout commands (hdl, hds, hdlm, hsl) and `h`, for bash and zsh. The line only sources them
-# when OMARCHY_PATH is set, i.e. in the Hyprland session; GNOME terminals skip it. Not backed up on purpose:
-# uninstall.sh removes just this line, so later edits to your rc files survive.
-RC_LINE='if [ -n "$OMARCHY_PATH" ] && [ -f ~/.local/share/omarchy-ubuntu/shell/herdr.sh ]; then . ~/.local/share/omarchy-ubuntu/shell/herdr.sh; fi # omarchy-ubuntu'
+# Omarchy's herdr layout commands (hdl, hds, hdlm, hsl), `h`, and the coding-agent shortcuts (a, c, cx, cy, mup),
+# for bash and zsh. The line only sources them when OMARCHY_PATH is set, i.e. in the Hyprland session; GNOME
+# terminals skip it. Not backed up on purpose: uninstall.sh removes just this line, so later edits to your rc
+# files survive.
+RC_LINE='if [ -n "$OMARCHY_PATH" ] && [ -f ~/.local/share/omarchy-ubuntu/shell/omarchy.sh ]; then . ~/.local/share/omarchy-ubuntu/shell/omarchy.sh; fi # omarchy-ubuntu'
 for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do
   [[ -f $rc ]] || continue
   if ! grep -qF '# omarchy-ubuntu' "$rc"; then
@@ -308,6 +309,28 @@ done
 # an earlier run did (the manifest says so): switching back from this branch then removes it.
 if grep -qxF "$HERDR_BIN" "$MANIFEST" 2>/dev/null && [[ -e $HERDR_BIN ]]; then
   manage "$HERDR_BIN"
+fi
+
+# ---- coding agents ------------------------------------------------------------
+# Omarchy installs its coding agents (claude, codex, opencode, ...) through mise, as small launchers in
+# ~/.local/bin that download the agent on first use; the default-agent menu and Super+Shift+Ctrl+A need them.
+# mise isn't in Ubuntu's archive: its PPA keeps it updated with the rest of apt. Like herdr, this is an extra:
+# if it fails, the install goes ahead without the agents.
+if ! command -v mise >/dev/null; then
+  say "Installing mise from its PPA (sudo)"
+  sudo apt-get install -y software-properties-common && sudo add-apt-repository -y ppa:jdxcode/mise &&
+    sudo apt-get install -y mise ||
+    warn "Couldn't install mise. Omarchy's coding agents need it; re-run install.sh to retry."
+fi
+if command -v mise >/dev/null; then
+  say "Installing Omarchy's coding-agent launchers into ~/.local/bin"
+  # Omarchy keeps Cursor's install options in /etc/mise/conf.d; mise reads the same file from your config too.
+  put "$OMARCHY_PATH/etc/mise/conf.d/omarchy.toml" "$C/mise/conf.d/omarchy.toml"
+  manage "$C/mise/conf.d/omarchy.toml"
+  while IFS= read -r launcher; do
+    manage "$launcher"
+  done < <(PATH="$LAYER/bin:$OMARCHY_PATH/bin:$PATH" OMARCHY_PATH="$OMARCHY_PATH" bash "$LAYER/lib/mise-launchers.sh" ||
+    warn "Some agent launchers couldn't be installed (see above).")
 fi
 
 # ---- fonts --------------------------------------------------------------------

@@ -21,11 +21,13 @@ Log out, click the gear icon on the login screen and choose **Hyprland (Omarchy)
 - **Super + K** shows every keybinding
 - **Super + Ctrl + Return** opens [herdr](https://herdr.dev), Omarchy's terminal workspace manager
   (prefix Ctrl+Space, **Super + Ctrl + K** lists its keys)
+- **Super + Shift + Ctrl + A** opens your coding agent. Pick one under **Setup > Defaults > Agent**: Claude
+  Code, Codex, OpenCode, Gemini, Copilot and the rest are ready to go and download the first time you use them
 
 ## Update
 
-Use **Update > Omarchy** in the menu, or run `omarchy-update`. It upgrades your apt packages and brings
-Omarchy on Ubuntu up to date.
+Use **Update > Omarchy** in the menu, or run `omarchy-update`. It upgrades your apt packages and the coding agents,
+and brings Omarchy on Ubuntu up to date.
 
 ## Uninstall
 
@@ -42,8 +44,10 @@ replaced is restored.
   leak into GNOME.
 - Your existing config files are kept; anything the installer has to replace is backed up first.
 - Hyprland is installed in `/opt/hyprland`, away from Ubuntu's own packages.
-- The installer adds one line to `~/.bashrc` and `~/.zshrc` for Omarchy's herdr commands; it only does
-  something in the Omarchy session, and uninstalling removes it.
+- The installer adds one line to `~/.bashrc` and `~/.zshrc` for Omarchy's herdr commands and agent shortcuts;
+  it only does something in the Omarchy session, and uninstalling removes it.
+- The coding-agent commands (`claude`, `codex`, `opencode`, ...) go in `~/.local/bin`, which GNOME also has on
+  its PATH, so they work there too. Any you already have are left alone.
 - One thing is shared: DNS. A preset you pick in Omarchy (network panel or Setup > DNS) is system-wide, so
   GNOME uses it too. It also replaces the DNS servers set on your Wi-Fi and Ethernet connections and rewrites
   `/etc/systemd/resolved.conf`; uninstalling doesn't undo that. Nothing changes until you pick a preset.

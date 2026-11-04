@@ -67,7 +67,8 @@ fc-cache -f >/dev/null 2>&1 || true
 cat <<EOF
 
 Done. Pick "Ubuntu" on the login screen if it isn't selected already.
-Desktop packages installed from apt (ghostty, gum, grim, ...) were left in place;
-remove them with apt if you don't want them.
+Desktop packages installed from apt (ghostty, gum, grim, mise, ...) were left in place;
+remove them with apt if you don't want them. The coding agents mise downloaded are in
+~/.local/share/mise; delete that folder if you don't want them either.
 EOF
 [[ -d $ASIDE ]] && echo "Moved-aside files are in $ASIDE (delete when you're sure)."
