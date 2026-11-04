@@ -40,6 +40,12 @@ Details for people changing this project. Users only need the [README](../README
   so Omarchy's dark mode, icons and fonts never change GNOME.
 - Theme switching does not rewrite VS Code, Claude Code, Obsidian or browser policies (shared with GNOME).
 - Omarchy's XDG autostart entries are not installed (GNOME would run them too).
+- Omarchy's speaker tuning (`omarchy audio tuning on`) runs as a user service started with the graphical
+  session, which GNOME starts too. A drop-in
+  (`~/.config/systemd/user/omarchy-speaker-tuning.service.d/omarchy-ubuntu.conf`) adds
+  `ConditionEnvironment=OMARCHY_PATH`, so GNOME plays straight to the speakers.
+  The tunings Omarchy ships (Dell XPS 14/16 2026) don't load on Ubuntu, though: their limiter is an LV2
+  plugin and Ubuntu's PipeWire is built without LV2 support (LADSPA works, e.g. `lsp-plugins-ladspa`).
 - Shell additions (the herdr commands) load only when `OMARCHY_PATH` is set, which only the Hyprland session
   does; GNOME terminals behave as before. The rc files aren't backed up: `uninstall.sh` removes only that line,
   so other edits survive.

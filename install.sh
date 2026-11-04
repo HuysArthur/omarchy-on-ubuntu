@@ -31,6 +31,7 @@ PACKAGES=(
   tesseract-ocr tesseract-ocr-eng zbar-tools qrencode libnotify-bin libxkbcommon-tools
   fonts-noto-color-emoji fonts-noto-cjk fonts-jetbrains-mono git curl xz-utils unzip
   python3-gi  # omarchy-idle-inhibit-bridge
+  pulseaudio-utils  # pactl: Omarchy's volume keys, output switcher and audio panel
 )
 
 say() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
@@ -177,9 +178,11 @@ cp -a "$REPO/layer" "$LAYER"
 say "Placing configs (replaced files are backed up to $BACKUP)"
 C=$HOME/.config
 
-# Ours: session environment, Hyprland entry point, separate dconf profile.
+# Ours: session environment, Hyprland entry point, separate dconf profile, and a drop-in that keeps Omarchy's
+# speaker tuning (WantedBy=graphical-session.target, which GNOME reaches too) out of GNOME.
 rm -f "$MANAGED.new"
-for f in uwsm/env hypr/hyprland.lua dconf/hyprland.profile; do
+for f in uwsm/env hypr/hyprland.lua dconf/hyprland.profile \
+  systemd/user/omarchy-speaker-tuning.service.d/omarchy-ubuntu.conf; do
   put "$REPO/config/$f" "$C/$f"
   manage "$C/$f"
 done
