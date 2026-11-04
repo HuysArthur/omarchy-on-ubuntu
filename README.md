@@ -61,6 +61,13 @@ from Flathub, so they stay up to date with the rest of your system.
 A few apps Omarchy expects aren't in Ubuntu's archive (hyprsunset, gpu-screen-recorder, tensaku,
 localsend, Obsidian). Their menu entries work once you install them yourself.
 
+## Changing it with an agent
+
+Omarchy's agent skills are set up for Claude Code, Codex, Pi and other agents that read `~/.agents/skills`,
+together with an `omarchy-ubuntu` skill that tells them how this setup differs from Arch Omarchy. Ask your
+agent to change the bar, keybindings, window rules or theme. If it makes a mess, `omarchy reinstall configs`
+puts Omarchy's defaults back (your versions are backed up to `~/.local/state/omarchy-ubuntu/backup/`).
+
 ## Contributing
 
 How it works, building the Hyprland package, releases and testing pull requests:

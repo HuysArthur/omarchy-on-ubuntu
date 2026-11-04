@@ -32,7 +32,23 @@ Details for people changing this project. Users only need the [README](../README
   the app launcher's uninstall action (apt and snap instead of pacman), Remove menu entries that would
   take packages away from GNOME (Fingerprint, Preinstalls), the browser installer (it skips Omarchy's browser
   policies under `/etc` and `~/.config/environment.d`, which GNOME would pick up too), menu entries hidden
-  because they need Arch, and the Ubuntu names of browsers in the menu and `omarchy-default-browser`.
+  because they need Arch, the Ubuntu names of browsers in the menu and `omarchy-default-browser`, and a note
+  at the top of Omarchy's agent skills that sends agents to the Ubuntu skill.
+- **Agent skills**: Omarchy's skills (`omarchy` for changing the desktop, `diagnose-crash`) and the layer's
+  `omarchy-ubuntu` skill (`layer/agents/skills/`) are linked into `~/.agents/skills`, `~/.claude/skills`,
+  `~/.codex/skills` and `~/.pi/agent/skills`, as Omarchy's `omarchy-provision-user` does; into
+  `~/.hermes/skills` and its profiles only if you have `~/.hermes`. A skill of yours with the same name is left
+  alone. The Ubuntu skill tells agents what differs here: apt instead of pacman, `$OMARCHY_PATH` instead of
+  `/usr/share/omarchy`, which files `install.sh` overwrites, what GNOME shares, how to tell the sessions apart,
+  what's Arch-only, and where to report bugs. Those folders are shared with GNOME, so agents see the skills
+  there too. When changing how the port works, update that skill.
+- **Resetting configs**: `omarchy-reinstall-configs` (`omarchy reinstall configs`; Omarchy's skill uses it to undo
+  an agent's changes) re-runs `install.sh` with `OMARCHY_UBUNTU_RESET_CONFIGS=1`. That makes `put --if-missing`
+  and the generated `hypr/input.lua`, `hypr/monitors.lua` and `hyprland-xdg-terminals.list` replace your file,
+  backing it up as usual. `omarchy-refresh-config` (also behind **Update > Config > Hyprland**) restores
+  `hypr/hyprland.lua` and `uwsm/env` from the copy of `config/` that `install.sh` puts in the layer, since
+  Omarchy's own would start the session without the layer; other files go to Omarchy's command.
+  `omarchy reinstall pkgs` is a stub (it would run pacman).
 
 ## How GNOME is kept separate
 

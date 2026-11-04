@@ -1,0 +1,30 @@
+diff --git a/default/agents/skills/diagnose-crash/SKILL.md b/default/agents/skills/diagnose-crash/SKILL.md
+index 7859c6ec1..8ab6f6513 100644
+--- a/default/agents/skills/diagnose-crash/SKILL.md
++++ b/default/agents/skills/diagnose-crash/SKILL.md
+@@ -11,6 +11,10 @@ description: >
+ 
+ # Diagnosing a Crash
+ 
++> **Omarchy on Ubuntu:** this machine runs Omarchy on Ubuntu, next to GNOME, not on Arch. Read the
++> `omarchy-ubuntu` skill (`~/.local/share/omarchy-ubuntu/agents/skills/omarchy-ubuntu/SKILL.md`) first;
++> where it differs from this one, it is right for this machine.
++
+ Work from evidence. The goal is an honest account of what happened, not a
+ plausible-sounding story.
+ 
+diff --git a/default/agents/skills/omarchy/SKILL.md b/default/agents/skills/omarchy/SKILL.md
+index 1b00974ab..667325bb5 100644
+--- a/default/agents/skills/omarchy/SKILL.md
++++ b/default/agents/skills/omarchy/SKILL.md
+@@ -13,6 +13,10 @@ description: >
+ 
+ # Omarchy Skill
+ 
++> **Omarchy on Ubuntu:** this machine runs Omarchy on Ubuntu, next to GNOME, not on Arch. Read the
++> `omarchy-ubuntu` skill (`~/.local/share/omarchy-ubuntu/agents/skills/omarchy-ubuntu/SKILL.md`) first;
++> where it differs from this one, it is right for this machine.
++
+ Manage [Omarchy](https://omarchy.org/) Linux systems - a beautiful, modern, opinionated Arch Linux distribution with Hyprland.
+ 
+ This skill is for end-user customization on installed systems.

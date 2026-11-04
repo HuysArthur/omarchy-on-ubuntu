@@ -20,6 +20,9 @@ MANIFEST=$STATE/manifest
 # Files every run places (a subset of MANIFEST). A run that no longer places one removes it, so switching
 # back from a pull request (omarchy-channel-set) undoes what it installed.
 MANAGED=$STATE/managed
+# Set by omarchy-reinstall-configs: put Omarchy's default back for every config file this script seeds, instead of
+# only creating the ones you don't have. Replaced files are backed up as usual.
+RESET_CONFIGS=${OMARCHY_UBUNTU_RESET_CONFIGS:-}
 
 # Desktop pieces Omarchy expects, by their Ubuntu names. Nothing here replaces or reconfigures GNOME.
 PACKAGES=(
@@ -77,10 +80,11 @@ prune() {
 }
 
 # put SRC DEST [--if-missing]: copy a config file into place, backing up whatever was there.
+# --if-missing leaves an existing file alone, unless configs are being reset.
 put() {
   local src=$1 dest=$2 mode=${3:-}
   if [[ -e $dest || -L $dest ]]; then
-    [[ $mode == --if-missing ]] && return 0
+    [[ $mode == --if-missing && -z $RESET_CONFIGS ]] && return 0
     cmp -s "$src" "$dest" && { record "$dest"; return 0; }
     backup "$dest"
   fi
@@ -172,6 +176,8 @@ done
 say "Installing the Ubuntu layer into $LAYER"
 rm -rf "$LAYER"
 cp -a "$REPO/layer" "$LAYER"
+# omarchy-ubuntu's own config files, for omarchy-refresh-config to restore (hypr/hyprland.lua, uwsm/env).
+cp -a "$REPO/config" "$LAYER/config"
 
 # ---- configs ------------------------------------------------------------------
 say "Placing configs (replaced files are backed up to $BACKUP)"
@@ -229,7 +235,7 @@ for f in bindings looknfeel autostart; do
   put "$OMARCHY_PATH/config/hypr/$f.lua" "$C/hypr/$f.lua" --if-missing
 done
 
-if [[ ! -e $C/hypr/input.lua ]]; then
+if [[ ! -e $C/hypr/input.lua || -n $RESET_CONFIGS ]]; then
   # shellcheck disable=SC1091
   . /etc/default/keyboard 2>/dev/null || true
   tmp=$(mktemp)
@@ -249,7 +255,7 @@ EOF
   rm -f "$tmp"
 fi
 
-if [[ ! -e $C/hypr/monitors.lua ]]; then
+if [[ ! -e $C/hypr/monitors.lua || -n $RESET_CONFIGS ]]; then
   # Omarchy assumes HiDPI (scale 2). Use 1 when every connected screen is at most 1920px wide.
   max_width=0
   for status in /sys/class/drm/card*-*/status; do
@@ -280,10 +286,10 @@ put /opt/hyprland/share/xdg-desktop-portal/hyprland-portals.conf "$C/xdg-desktop
 
 # Default apps and terminal for the Hyprland session only (desktop-specific files GNOME ignores).
 put "$OMARCHY_PATH/config/hyprland-mimeapps.list" "$C/hyprland-mimeapps.list" --if-missing
-if [[ ! -e $C/hyprland-xdg-terminals.list ]]; then
-  echo com.mitchellh.ghostty.desktop >"$C/hyprland-xdg-terminals.list"
-  record "$C/hyprland-xdg-terminals.list"
-fi
+tmp=$(mktemp)
+echo com.mitchellh.ghostty.desktop >"$tmp"
+put "$tmp" "$C/hyprland-xdg-terminals.list" --if-missing
+rm -f "$tmp"
 
 # ---- shell --------------------------------------------------------------------
 # Omarchy's herdr layout commands (hdl, hds, hdlm, hsl) and `h`, for bash and zsh. The line only sources them
@@ -309,6 +315,34 @@ done
 if grep -qxF "$HERDR_BIN" "$MANIFEST" 2>/dev/null && [[ -e $HERDR_BIN ]]; then
   manage "$HERDR_BIN"
 fi
+
+# ---- agent skills -------------------------------------------------------------
+# Omarchy's skills teach coding agents how this desktop is put together (Hyprland, the bar, plugins, themes,
+# hooks) and how to diagnose a crash; omarchy-ubuntu tells them what differs here (apt instead of pacman, where
+# Omarchy lives, what GNOME shares). Linked where the agents look, as Omarchy's omarchy-provision-user does.
+# Hermes isn't set up on Ubuntu (Install > AI hides it), so its folders only get them if you have Hermes.
+skill_dirs=("$HOME/.agents/skills" "$HOME/.claude/skills" "$HOME/.codex/skills" "$HOME/.pi/agent/skills")
+if [[ -d $HOME/.hermes ]]; then
+  skill_dirs+=("$HOME/.hermes/skills")
+  for profile in "$HOME"/.hermes/profiles/*/; do
+    [[ -d $profile ]] && skill_dirs+=("${profile%/}/skills")
+  done
+fi
+for skill in "$OMARCHY_PATH"/default/agents/skills/*/ "$LAYER"/agents/skills/*/; do
+  skill=${skill%/}
+  [[ -f $skill/SKILL.md ]] || continue
+  for dir in "${skill_dirs[@]}"; do
+    link=$dir/${skill##*/}
+    # A skill of yours by the same name stays; ours always links to the same place.
+    if [[ -e $link || -L $link ]] && [[ $(readlink "$link") != "$skill" ]]; then
+      warn "Not linking the ${skill##*/} skill: $link already exists."
+      continue
+    fi
+    mkdir -p "$dir"
+    ln -sfn "$skill" "$link"
+    manage "$link"
+  done
+done
 
 # ---- fonts --------------------------------------------------------------------
 FONTS=$HOME/.local/share/fonts
