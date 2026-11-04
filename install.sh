@@ -51,6 +51,18 @@ manage() {
   grep -qxF "$1" "$MANAGED.new" 2>/dev/null || echo "$1" >>"$MANAGED.new"
 }
 
+# forget PATH: stop tracking PATH (it's yours now), so prune and uninstall.sh leave it alone.
+forget() {
+  local list tmp
+  for list in "$MANIFEST" "$MANAGED"; do
+    [[ -f $list ]] || continue
+    tmp=$(mktemp)
+    grep -vxF -- "$1" "$list" >"$tmp" || true
+    cat "$tmp" >"$list"
+    rm -f "$tmp"
+  done
+}
+
 # Remove what the previous run managed and this one didn't, restoring what it had replaced.
 prune() {
   local path rel dir units=
@@ -322,6 +334,19 @@ if ! command -v mise >/dev/null; then
     sudo apt-get install -y mise ||
     warn "Couldn't install mise. Omarchy's coding agents need it; re-run install.sh to retry."
 fi
+# shellcheck source=layer/lib/launchers.sh
+. "$LAYER/lib/launchers.sh"
+# A launcher you've since replaced with your own install (an agent's own installer writes the same path) is
+# yours now: forget it, so that neither this run's cleanup nor uninstall.sh removes it.
+LAUNCHERS=$STATE/agent-launchers
+if [[ -f $LAUNCHERS ]]; then
+  while IFS= read -r launcher; do
+    if [[ -e $launcher || -L $launcher ]] && ! omarchy_launcher "$launcher"; then
+      forget "$launcher"
+    fi
+  done <"$LAUNCHERS"
+fi
+: >"$LAUNCHERS.new"
 if command -v mise >/dev/null; then
   say "Installing Omarchy's coding-agent launchers into ~/.local/bin"
   # Omarchy keeps Cursor's install options in /etc/mise/conf.d; mise reads the same file from your config too.
@@ -329,9 +354,15 @@ if command -v mise >/dev/null; then
   manage "$C/mise/conf.d/omarchy.toml"
   while IFS= read -r launcher; do
     manage "$launcher"
+    echo "$launcher" >>"$LAUNCHERS.new"
   done < <(PATH="$LAYER/bin:$OMARCHY_PATH/bin:$PATH" OMARCHY_PATH="$OMARCHY_PATH" bash "$LAYER/lib/mise-launchers.sh" ||
     warn "Some agent launchers couldn't be installed (see above).")
 fi
+mv "$LAUNCHERS.new" "$LAUNCHERS"
+
+# herdr's status and session-restore integration for the agents you use, whether mise installed them or you did
+# (your own Claude Code, say). Omarchy 4.5 does this only for agents mise installs. omarchy-update runs it too.
+"$LAYER/bin/omarchy-ubuntu-herdr-integrations"
 
 # ---- fonts --------------------------------------------------------------------
 FONTS=$HOME/.local/share/fonts

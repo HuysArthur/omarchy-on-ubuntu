@@ -37,6 +37,17 @@ Details for people changing this project. Users only need the [README](../README
   loads Omarchy's `a`, `c`, `cx`, `cy` and `mup` aliases (`layer/shell/agents.sh`). Like herdr, this is an
   extra: if mise can't be installed, the install carries on without it. `uninstall.sh` removes the launchers
   but leaves mise and what it downloaded (`~/.local/share/mise`, `~/.config/mise/config.toml`).
+  When an agent's own installer later replaces a launcher (Claude Code's and Cursor's write the same path),
+  the next `install.sh` stops tracking that path (`forget`, using the list in
+  `~/.local/state/omarchy-ubuntu/agent-launchers`), so neither the cleanup of a run nor `uninstall.sh` removes
+  your install.
+- **herdr integration for agents**: `omarchy-ubuntu-herdr-integrations` runs `herdr integration install` for each
+  of Omarchy's agents whose config folder exists (it has been run once), however it was installed. Omarchy 4.5
+  only does this from a mise postinstall hook, so a self-installed Claude Code would miss it. `install.sh` and
+  `omarchy-update` run it; an integration you installed yourself is left alone; the ones it installed are
+  listed in `~/.local/state/omarchy-ubuntu/herdr-integrations`, kept current, and removed by `uninstall.sh`
+  (not by switching channels). The hooks only act inside herdr, so they're harmless in GNOME, which shares
+  `~/.claude` and the other agent folders.
 - **Screensaver inhibit bridge** (`omarchy-idle-inhibit-bridge`): answers apps that ask over DBus to keep the
   screen awake (browsers during video calls, video players) by holding a Wayland idle inhibitor, the only kind
   Omarchy's shell honours.
