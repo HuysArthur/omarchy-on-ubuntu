@@ -291,31 +291,6 @@ echo com.mitchellh.ghostty.desktop >"$tmp"
 put "$tmp" "$C/hyprland-xdg-terminals.list" --if-missing
 rm -f "$tmp"
 
-# ---- shell --------------------------------------------------------------------
-# Omarchy's herdr layout commands (hdl, hds, hdlm, hsl) and `h`, for bash and zsh. The line only sources them
-# when OMARCHY_PATH is set, i.e. in the Hyprland session; GNOME terminals skip it. Not backed up on purpose:
-# uninstall.sh removes just this line, so later edits to your rc files survive.
-RC_LINE='if [ -n "$OMARCHY_PATH" ] && [ -f ~/.local/share/omarchy-ubuntu/shell/herdr.sh ]; then . ~/.local/share/omarchy-ubuntu/shell/herdr.sh; fi # omarchy-ubuntu'
-for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do
-  [[ -f $rc ]] || continue
-  if ! grep -qF '# omarchy-ubuntu' "$rc"; then
-    printf '\n%s\n' "$RC_LINE" >>"$rc"
-  elif ! grep -qxF "$RC_LINE" "$rc"; then
-    # An older version of the line: replace it in place. Written back with cat so a symlinked rc file
-    # (dotfile managers) keeps its link and permissions.
-    tmp=$(mktemp)
-    awk -v line="$RC_LINE" '/# omarchy-ubuntu$/ { print line; next } { print }' "$rc" >"$tmp"
-    cat "$tmp" >"$rc"
-    rm -f "$tmp"
-  fi
-done
-
-# The herdr binary is downloaded only when missing, so a run that doesn't download it still manages it if
-# an earlier run did (the manifest says so): switching back from this branch then removes it.
-if grep -qxF "$HERDR_BIN" "$MANIFEST" 2>/dev/null && [[ -e $HERDR_BIN ]]; then
-  manage "$HERDR_BIN"
-fi
-
 # ---- agent skills -------------------------------------------------------------
 # Omarchy's skills teach coding agents how this desktop is put together (Hyprland, the bar, plugins, themes,
 # hooks) and how to diagnose a crash; omarchy-ubuntu tells them what differs here (apt instead of pacman, where
@@ -343,6 +318,31 @@ for skill in "$OMARCHY_PATH"/default/agents/skills/*/ "$LAYER"/agents/skills/*/;
     manage "$link"
   done
 done
+
+# ---- shell --------------------------------------------------------------------
+# Omarchy's herdr layout commands (hdl, hds, hdlm, hsl) and `h`, for bash and zsh. The line only sources them
+# when OMARCHY_PATH is set, i.e. in the Hyprland session; GNOME terminals skip it. Not backed up on purpose:
+# uninstall.sh removes just this line, so later edits to your rc files survive.
+RC_LINE='if [ -n "$OMARCHY_PATH" ] && [ -f ~/.local/share/omarchy-ubuntu/shell/herdr.sh ]; then . ~/.local/share/omarchy-ubuntu/shell/herdr.sh; fi # omarchy-ubuntu'
+for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do
+  [[ -f $rc ]] || continue
+  if ! grep -qF '# omarchy-ubuntu' "$rc"; then
+    printf '\n%s\n' "$RC_LINE" >>"$rc"
+  elif ! grep -qxF "$RC_LINE" "$rc"; then
+    # An older version of the line: replace it in place. Written back with cat so a symlinked rc file
+    # (dotfile managers) keeps its link and permissions.
+    tmp=$(mktemp)
+    awk -v line="$RC_LINE" '/# omarchy-ubuntu$/ { print line; next } { print }' "$rc" >"$tmp"
+    cat "$tmp" >"$rc"
+    rm -f "$tmp"
+  fi
+done
+
+# The herdr binary is downloaded only when missing, so a run that doesn't download it still manages it if
+# an earlier run did (the manifest says so): switching back from this branch then removes it.
+if grep -qxF "$HERDR_BIN" "$MANIFEST" 2>/dev/null && [[ -e $HERDR_BIN ]]; then
+  manage "$HERDR_BIN"
+fi
 
 # ---- fonts --------------------------------------------------------------------
 FONTS=$HOME/.local/share/fonts
