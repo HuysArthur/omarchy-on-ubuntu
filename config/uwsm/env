@@ -8,6 +8,10 @@ export PATH="$HOME/.local/share/omarchy-ubuntu/bin:/opt/hyprland/bin:$OMARCHY_PA
 # changes never reach the regular Ubuntu (GNOME) session. Stored in ~/.config/dconf/hyprland.
 export DCONF_PROFILE="$HOME/.config/dconf/hyprland.profile"
 
+# Launchers and icons of Omarchy's apps from the Hyprland package (Disktree, Hype, Omacalc, ...). Only this
+# session looks in /opt/hyprland/share, so they don't show up in GNOME.
+export XDG_DATA_DIRS="/opt/hyprland/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+
 [ -f "$OMARCHY_PATH/default/uwsm/default" ] && . "$OMARCHY_PATH/default/uwsm/default"
 [ -f "$HOME/.config/uwsm/default" ] && . "$HOME/.config/uwsm/default"
 

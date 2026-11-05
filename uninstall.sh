@@ -75,6 +75,11 @@ for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do
   rm -f "$tmp"
 done
 
+# Launchers Remove > Preinstalls wrote to hide Omarchy's apps (layer/bin/omarchy-remove-preinstalls).
+for f in "$HOME"/.local/share/applications/*.desktop; do
+  [[ -f $f && $(head -1 "$f") == '# omarchy-ubuntu: preinstall removed (Remove > Preinstalls)' ]] && rm -f "$f"
+done
+
 say "Removing Omarchy checkout and Ubuntu layer"
 rm -rf "$HOME/.local/share/omarchy" "$HOME/.local/share/omarchy-ubuntu" "$STATE"
 fc-cache -f >/dev/null 2>&1 || true

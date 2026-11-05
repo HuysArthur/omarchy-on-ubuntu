@@ -5,7 +5,7 @@ set -euo pipefail
 
 REPO=$(cd "$(dirname "$0")" && pwd)
 OMARCHY_REPO=https://github.com/basecamp/omarchy
-OMARCHY_REF=v4.0.6
+OMARCHY_REF=v4.5.0
 NERD_FONTS_VERSION=v3.4.0
 # Herdr (Omarchy's terminal workspace manager, Super+Ctrl+Return) is an Arch package; on Ubuntu we use the
 # static release binary. Checksum from https://herdr.dev/latest.json. herdr updates itself afterwards (herdr update).
@@ -30,8 +30,9 @@ PACKAGES=(
   btop fzf ripgrep bat eza fd-find zoxide fastfetch tree-sitter-cli lazygit neovim
   tesseract-ocr tesseract-ocr-eng zbar-tools qrencode libnotify-bin libxkbcommon-tools
   fonts-noto-color-emoji fonts-noto-cjk fonts-jetbrains-mono git curl xz-utils unzip
+  x11-xserver-utils  # xsetroot, for the startup cursor
   python3-gi  # omarchy-idle-inhibit-bridge
-  nodejs  # mise needs a node on PATH to install the npm-based coding agents
+  pulseaudio-utils  # pactl: Omarchy's volume keys, output switcher and audio panel
 )
 
 say() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
@@ -186,13 +187,21 @@ say "Installing the Ubuntu layer into $LAYER"
 rm -rf "$LAYER"
 cp -a "$REPO/layer" "$LAYER"
 
+# Superwhisper (dictation) is installed from its vendor when you pick it; bring it to the pinned version.
+if [[ -f /opt/superwhisper/.omarchy-ubuntu-version ]] && ! "$LAYER/libexec/superwhisper" current; then
+  say "Updating Superwhisper"
+  "$LAYER/libexec/superwhisper" install || warn "Couldn't update Superwhisper; re-run install.sh to retry."
+fi
+
 # ---- configs ------------------------------------------------------------------
 say "Placing configs (replaced files are backed up to $BACKUP)"
 C=$HOME/.config
 
-# Ours: session environment, Hyprland entry point, separate dconf profile.
+# Ours: session environment, Hyprland entry point, separate dconf profile, and a drop-in that keeps Omarchy's
+# speaker tuning (WantedBy=graphical-session.target, which GNOME reaches too) out of GNOME.
 rm -f "$MANAGED.new"
-for f in uwsm/env hypr/hyprland.lua dconf/hyprland.profile; do
+for f in uwsm/env hypr/hyprland.lua dconf/hyprland.profile \
+  systemd/user/omarchy-speaker-tuning.service.d/omarchy-ubuntu.conf; do
   put "$REPO/config/$f" "$C/$f"
   manage "$C/$f"
 done
@@ -231,6 +240,22 @@ systemctl --user daemon-reload
 systemctl --user enable --now omarchy-sleep-lock.service
 manage "$C/systemd/user/graphical-session.target.wants/omarchy-sleep-lock.service"
 
+# owe, Omarchy's wallpaper engine (video backgrounds, theme intros), from the Hyprland package. Its daemon
+# draws the desktop background, so like sleep-lock it only starts where OMARCHY_PATH is set (not in GNOME).
+tmp=$(mktemp)
+sed 's|^\[Unit\]$|[Unit]\nConditionEnvironment=OMARCHY_PATH\nConditionEnvironment=WAYLAND_DISPLAY|' \
+  /opt/hyprland/share/owe/owed.service >"$tmp"
+grep -q '^ConditionEnvironment=OMARCHY_PATH$' "$tmp" || die "owed.service has no [Unit] section; update install.sh."
+put "$tmp" "$C/systemd/user/owed.service"
+manage "$C/systemd/user/owed.service"
+rm -f "$tmp"
+systemctl --user daemon-reload
+systemctl --user enable --now owed.service
+manage "$C/systemd/user/graphical-session.target.wants/owed.service"
+# Tells owe to pick up a new theme's background (Omarchy runs `omarchy-hook-install theme-set` with it).
+put /opt/hyprland/share/owe/10-owe-sync "$C/omarchy/hooks/theme-set.d/10-owe-sync"
+manage "$C/omarchy/hooks/theme-set.d/10-owe-sync"
+
 # Start the Hyprland session's settings from a copy of the GNOME ones (fonts, keyboard, app prefs).
 if [[ ! -e $C/dconf/hyprland && -f $C/dconf/user ]]; then
   cp "$C/dconf/user" "$C/dconf/hyprland"
@@ -242,11 +267,43 @@ for f in bindings looknfeel autostart; do
   put "$OMARCHY_PATH/config/hypr/$f.lua" "$C/hypr/$f.lua" --if-missing
 done
 
-if [[ ! -e $C/hypr/input.lua ]]; then
-  # shellcheck disable=SC1091
-  . /etc/default/keyboard 2>/dev/null || true
-  tmp=$(mktemp)
-  cat >"$tmp" <<EOF
+# Keyboard layout. Omarchy reads it from ~/.config/omarchy/keyboard-layouts, which Setup > Typing > Keyboard
+# Layouts writes (on Arch it falls back to /etc/vconsole.conf). Start it from Ubuntu's /etc/default/keyboard.
+# shellcheck disable=SC1091
+. /etc/default/keyboard 2>/dev/null || true
+if [[ ! -e $C/omarchy/keyboard-layouts ]]; then
+  mkdir -p "$C/omarchy"
+  printf 'XKBLAYOUT=%s\nXKBVARIANT=%s\n' "${XKBLAYOUT:-us}" "${XKBVARIANT:-}" >"$C/omarchy/keyboard-layouts"
+  record "$C/omarchy/keyboard-layouts"
+fi
+
+# Omarchy's own XKB option, omarchy:shift_caps_compose (Caps Lock stays Caps Lock, Shift + Caps Lock is
+# Compose). Omarchy puts it in /etc/xkb; libxkbcommon also reads ~/.config/xkb. The rules file includes the
+# system's rules and only adds that option, so every other keymap, GNOME's included, comes out the same.
+# A file of your own there is left alone.
+for f in rules/evdev symbols/omarchy; do
+  if [[ -e $C/xkb/$f ]] && ! grep -qxF "$C/xkb/$f" "$MANIFEST" 2>/dev/null; then
+    warn "Keeping your $C/xkb/$f. Omarchy's Shift + Caps Lock compose key needs $OMARCHY_PATH/etc/xkb/$f there."
+    continue
+  fi
+  put "$OMARCHY_PATH/etc/xkb/$f" "$C/xkb/$f"
+  manage "$C/xkb/$f"
+done
+
+# Personal input overrides: Omarchy's template, plus Ubuntu's own XKB options after Omarchy's.
+tmp=$(mktemp)
+cp "$OMARCHY_PATH/config/hypr/input.lua" "$tmp"
+if [[ -n ${XKBOPTIONS:-} ]]; then
+  cat >>"$tmp" <<EOF
+
+-- Keyboard options from Ubuntu (/etc/default/keyboard), after Omarchy's own.
+hl.config({ input = { kb_options = "omarchy:shift_caps_compose,$XKBOPTIONS" } })
+EOF
+fi
+# Before Omarchy 4.5 this installer wrote the layout into input.lua, which would now override Setup > Typing >
+# Keyboard Layouts. Replace that file if it's still exactly as it was written.
+old=$(mktemp)
+cat >"$old" <<EOF
 -- Personal input overrides; settings here replace Omarchy's defaults.
 -- Keyboard layout taken from Ubuntu (/etc/default/keyboard) at install time.
 -- See $OMARCHY_PATH/config/hypr/input.lua for more examples.
@@ -258,9 +315,12 @@ hl.config({
   },
 })
 EOF
+if cmp -s "$old" "$C/hypr/input.lua"; then
   put "$tmp" "$C/hypr/input.lua"
-  rm -f "$tmp"
+else
+  put "$tmp" "$C/hypr/input.lua" --if-missing
 fi
+rm -f "$tmp" "$old"
 
 if [[ ! -e $C/hypr/monitors.lua ]]; then
   # Omarchy assumes HiDPI (scale 2). Use 1 when every connected screen is at most 1920px wide.
@@ -288,8 +348,15 @@ done < <(find "$OMARCHY_PATH/config/ghostty" "$OMARCHY_PATH/config/btop" "$OMARC
 put "$OMARCHY_PATH/logo.txt" "$C/omarchy/branding/screensaver.txt" --if-missing
 put "$OMARCHY_PATH/icon.txt" "$C/omarchy/branding/about.txt" --if-missing
 
-# Portal choice (screen sharing, file pickers) for the Hyprland session; only read when the desktop is Hyprland.
-put /opt/hyprland/share/xdg-desktop-portal/hyprland-portals.conf "$C/xdg-desktop-portal/hyprland-portals.conf" --if-missing
+# Portal choice (screen sharing, file pickers, and since Omarchy 4.5 GNOME Keyring as the Secret portal) for the
+# Hyprland session; only read when the desktop is Hyprland. Earlier installs copied Hyprland's own file, which
+# lacks the Secret portal: replace it if it's unchanged.
+portals=$C/xdg-desktop-portal/hyprland-portals.conf
+if cmp -s /opt/hyprland/share/xdg-desktop-portal/hyprland-portals.conf "$portals"; then
+  put "$OMARCHY_PATH/config/xdg-desktop-portal/hyprland-portals.conf" "$portals"
+else
+  put "$OMARCHY_PATH/config/xdg-desktop-portal/hyprland-portals.conf" "$portals" --if-missing
+fi
 
 # Default apps and terminal for the Hyprland session only (desktop-specific files GNOME ignores).
 put "$OMARCHY_PATH/config/hyprland-mimeapps.list" "$C/hyprland-mimeapps.list" --if-missing

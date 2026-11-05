@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libegl-dev libgles-dev libgl-dev libopengl-dev libpixman-1-dev libcairo2-dev \
     libpango1.0-dev libglib2.0-dev libudev-dev libseat-dev libdisplay-info-dev hwdata \
     liblua5.5-dev libei-dev libeis-dev libre2-dev libmuparser-dev liblcms2-dev glslang-dev glslang-tools \
-    libpugixml-dev libtomlplusplus-dev libzip-dev libffi-dev libsdbus-c++-dev uuid-dev \
+    libpugixml-dev libtomlplusplus-dev libzip-dev libffi-dev libsdbus-c++-dev uuid-dev libcanberra-dev \
     libxcursor-dev librsvg2-dev libmagic-dev libjpeg-dev libwebp-dev libpng-dev libspng-dev \
     libjxl-dev libheif-dev \
     libxcb1-dev libxcb-render0-dev libxcb-xfixes0-dev libxcb-icccm4-dev \
@@ -18,4 +18,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     qt6-wayland-dev qt6-wayland-private-dev qt6-shadertools-dev qt6-svg-dev spirv-tools \
     libcli11-dev libpipewire-0.3-dev libpam0g-dev libpolkit-agent-1-dev libpolkit-gobject-1-dev \
     libjemalloc-dev libvulkan-dev cargo \
+    wayland-protocols liblayershellqtinterface-dev libdeflate-dev \
+    libmpv-dev libavformat-dev libavcodec-dev libavutil-dev libswscale-dev libepoxy-dev libsystemd-dev \
+    qt6-multimedia-dev libpoppler-qt6-dev libqpdf-dev zlib1g-dev \
+    golang-go libasound2-dev libvorbis-dev libogg-dev libflac-dev libmpg123-dev \
+    libgtk-4-dev libadwaita-1-dev libva-dev libdbus-1-dev nasm \
+    libwebkit2gtk-4.1-0 libxkbcommon-x11-0 \
  && rm -rf /var/lib/apt/lists/*

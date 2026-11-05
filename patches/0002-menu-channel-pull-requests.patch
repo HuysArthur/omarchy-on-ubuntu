@@ -1,8 +1,8 @@
 diff --git a/default/omarchy/omarchy-menu.jsonc b/default/omarchy/omarchy-menu.jsonc
-index fb2b31d..e2842b9 100644
+index 98a7e1f..deacfa5 100644
 --- a/default/omarchy/omarchy-menu.jsonc
 +++ b/default/omarchy/omarchy-menu.jsonc
-@@ -348,10 +348,8 @@
+@@ -445,10 +445,8 @@
    "update.password": {"icon":"","label":"Password"},
    "update.timezone": {"icon":"","label":"Timezone","action":"omarchy-menu-timezone"},
    "update.time": {"icon":"","label":"Time","action":"omarchy-launch-floating-terminal-with-presentation omarchy-update-time"},
