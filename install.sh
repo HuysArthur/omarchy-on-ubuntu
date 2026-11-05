@@ -33,6 +33,7 @@ PACKAGES=(
   x11-xserver-utils  # xsetroot, for the startup cursor
   python3-gi  # omarchy-idle-inhibit-bridge
   pulseaudio-utils  # pactl: Omarchy's volume keys, output switcher and audio panel
+  wf-recorder ffmpeg v4l-utils  # screen recording (gpu-screen-recorder isn't packaged), its finalizing and webcam overlay
 )
 
 say() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }

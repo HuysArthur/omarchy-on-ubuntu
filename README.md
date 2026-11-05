@@ -66,7 +66,9 @@ from Flathub, so they stay up to date with the rest of your system. Superwhisper
 (Setup > Defaults > Dictation), is downloaded from superwhisper.com when you pick it.
 
 A few apps Omarchy expects aren't in Ubuntu's archive (hyprsunset, gpu-screen-recorder, tensaku,
-localsend, Obsidian). Their menu entries work once you install them yourself.
+localsend, Obsidian). Their menu entries work once you install them yourself. Screen recording uses
+wf-recorder instead of gpu-screen-recorder: it encodes on the CPU, and portal capture and `--resolution`
+need gpu-screen-recorder.
 
 ## Contributing
 
