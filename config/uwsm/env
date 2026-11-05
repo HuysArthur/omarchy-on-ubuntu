@@ -8,6 +8,13 @@ export PATH="$HOME/.local/share/omarchy-ubuntu/bin:/opt/hyprland/bin:$OMARCHY_PA
 # changes never reach the regular Ubuntu (GNOME) session. Stored in ~/.config/dconf/hyprland.
 export DCONF_PROFILE="$HOME/.config/dconf/hyprland.profile"
 
+# Omarchy's coding agents: mise reads Omarchy's tool and account config (Arch: /etc/mise/conf.d) as its system
+# config in this session only. Its command wrappers (agent accounts) go first on PATH, its shims (the agents,
+# installed on first run) after the system's, as in Omarchy's env-bootstrap.
+export MISE_SYSTEM_CONFIG_DIR="$OMARCHY_PATH/etc/mise"
+export OMARCHY_MISE_CONFIG_PATH="$MISE_SYSTEM_CONFIG_DIR/conf.d/omarchy-tools.toml"
+export PATH="$HOME/.local/share/mise/command-wrappers/bin:$PATH:$HOME/.local/share/mise/shims"
+
 # Launchers and icons of Omarchy's apps from the Hyprland package (Disktree, Hype, Omacalc, ...). Only this
 # session looks in /opt/hyprland/share, so they don't show up in GNOME.
 export XDG_DATA_DIRS="/opt/hyprland/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"

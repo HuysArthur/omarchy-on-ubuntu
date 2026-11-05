@@ -1,7 +1,6 @@
 #!/bin/bash
 # Installs herdr's status and session-restore integration for the coding agents you use, however you installed
-# them. Omarchy (from 4.5) does this from a mise postinstall hook, so only for agents mise installs; an agent
-# you installed with its own installer (Claude Code's native one, say) would miss out.
+# them (mise's shims or an agent's own installer, like Claude Code's native one). Omarchy doesn't set this up.
 #
 # An agent counts once its config folder exists, which it makes on first run: agents you haven't used get it
 # the next time this runs (install.sh, omarchy-update). It never touches an integration you installed yourself;
@@ -27,7 +26,7 @@ if [[ ${1:-} == --remove ]]; then
   exit 0
 fi
 
-# Omarchy's agents (omarchy-agent-integrate-herdr in Omarchy 4.5): herdr target and the folder the agent makes.
+# Omarchy's agents: herdr target and the folder the agent makes.
 config=$HOME/.config
 targets=(
   "claude ${CLAUDE_CONFIG_DIR:-$HOME/.claude}"

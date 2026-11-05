@@ -392,10 +392,14 @@ if grep -qxF "$HERDR_BIN" "$MANIFEST" 2>/dev/null && [[ -e $HERDR_BIN ]]; then
 fi
 
 # ---- coding agents ------------------------------------------------------------
-# Omarchy installs its coding agents (claude, codex, opencode, ...) through mise, as small launchers in
-# ~/.local/bin that download the agent on first use; the default-agent menu and Super+Shift+Ctrl+A need them.
-# mise isn't in Ubuntu's archive: its PPA keeps it updated with the rest of apt. Like herdr, this is an extra:
-# if it fails, the install goes ahead without the agents.
+# Omarchy 4.5 declares its coding agents (claude, codex, opencode, gemini, ...) and a few tools as lazy mise tools
+# in $OMARCHY_PATH/etc/mise/conf.d (on Arch, /etc/mise/conf.d): mise puts a shim for each in
+# ~/.local/share/mise/shims and installs the tool the first time it runs, and switching agent accounts goes
+# through mise command wrappers (~/.local/share/mise/command-wrappers/bin). Here mise reads that folder as its
+# system config only in the Hyprland session (MISE_SYSTEM_CONFIG_DIR in config/uwsm/env), which also puts those
+# two folders on PATH, so mise in GNOME and /etc/mise stay as they are. mise isn't in Ubuntu's archive: its PPA
+# keeps it updated with the rest of apt. Like herdr, this is an extra: if it fails, the install carries on.
+MISE_MINIMUM=2026.11.1 # lazy tools, system shims in $HOME and command wrappers, as Omarchy 4.5 uses them
 if ! command -v mise >/dev/null; then
   say "Installing mise from its PPA (sudo)"
   if ! { sudo apt-get install -y software-properties-common && sudo add-apt-repository -y ppa:jdxcode/mise &&
@@ -405,38 +409,35 @@ if ! command -v mise >/dev/null; then
     sudo add-apt-repository -y --remove ppa:jdxcode/mise 2>/dev/null || true
   fi
 fi
-# shellcheck source=layer/lib/launchers.sh
-. "$LAYER/lib/launchers.sh"
-# A launcher from an earlier run stays managed while it's still ours: lib/mise-launchers.sh doesn't report every
-# one again (Omarchy's list skips cursor-agent and muse once they exist). One you've since replaced with your own
-# install (an agent's own installer writes the same path) is yours now: forget it, so that neither this run's
-# cleanup nor uninstall.sh removes it.
-LAUNCHERS=$STATE/agent-launchers
-: >"$LAUNCHERS.new"
-keep_launcher() {
-  manage "$1"
-  grep -qxF "$1" "$LAUNCHERS.new" || echo "$1" >>"$LAUNCHERS.new"
-}
-if [[ -f $LAUNCHERS ]]; then
+if command -v mise >/dev/null; then
+  mise_version=$(mise --version 2>/dev/null | grep -oE '^[0-9]+\.[0-9]+\.[0-9]+' || true)
+  if [[ -z $mise_version || $(printf '%s\n' "$MISE_MINIMUM" "$mise_version" | sort -V | head -1) != "$MISE_MINIMUM" ]]; then
+    warn "mise ${mise_version:-(unknown version)} is older than $MISE_MINIMUM, which Omarchy's coding agents need. Update it (sudo apt upgrade mise, or mise self-update)."
+  fi
+  say "Setting up Omarchy's coding agents (mise shims)"
+  # What Omarchy's install/user/mise.sh does, with the session's system config.
+  MISE_SYSTEM_CONFIG_DIR=$OMARCHY_PATH/etc/mise MISE_OFFLINE=true mise reshim --system &&
+    MISE_SYSTEM_CONFIG_DIR=$OMARCHY_PATH/etc/mise MISE_OFFLINE=true mise reshim ||
+    warn "mise couldn't create the agents' shims (see above); re-run install.sh to retry."
+fi
+
+# Before Omarchy 4.5, this put a launcher per agent in ~/.local/bin (still listed in $STATE/agent-launchers on
+# machines that ran that version). They'd now shadow the shims: the ones that are still Omarchy's go with this
+# run's cleanup, and one an agent's own installer has since replaced is yours, so it's left alone.
+if [[ -f $STATE/agent-launchers ]]; then
+  # shellcheck source=layer/lib/launchers.sh
+  . "$LAYER/lib/launchers.sh"
   while IFS= read -r launcher; do
     [[ -e $launcher || -L $launcher ]] || continue
-    if omarchy_launcher "$launcher"; then keep_launcher "$launcher"; else forget "$launcher"; fi
-  done <"$LAUNCHERS"
+    omarchy_launcher "$launcher" || forget "$launcher"
+  done <"$STATE/agent-launchers"
+  rm -f "$STATE/agent-launchers"
 fi
-if command -v mise >/dev/null; then
-  say "Installing Omarchy's coding-agent launchers into ~/.local/bin"
-  # Omarchy keeps Cursor's install options in /etc/mise/conf.d; mise reads the same file from your config too.
-  put "$OMARCHY_PATH/etc/mise/conf.d/omarchy.toml" "$C/mise/conf.d/omarchy.toml"
-  manage "$C/mise/conf.d/omarchy.toml"
-  while IFS= read -r launcher; do
-    keep_launcher "$launcher"
-  done < <(PATH="$LAYER/bin:$OMARCHY_PATH/bin:$PATH" OMARCHY_PATH="$OMARCHY_PATH" bash "$LAYER/lib/mise-launchers.sh" ||
-    warn "Some agent launchers couldn't be installed (see above).")
-fi
-mv "$LAUNCHERS.new" "$LAUNCHERS"
+# (The Cursor options that version copied to ~/.config/mise/conf.d are no longer placed, so this run's cleanup
+# removes them too: they now come from Omarchy's system config.)
 
 # herdr's status and session-restore integration for the agents you use, whether mise installed them or you did
-# (your own Claude Code, say). Omarchy 4.5 does this only for agents mise installs. omarchy-update runs it too.
+# (your own Claude Code, say). Omarchy doesn't set this up itself. omarchy-update runs it too.
 "$LAYER/bin/omarchy-ubuntu-herdr-integrations"
 
 # ---- fonts --------------------------------------------------------------------
