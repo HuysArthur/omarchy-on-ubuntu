@@ -1,1 +1,10 @@
-omarchy-ubuntu-unsupported
+#!/bin/bash
+# Omarchy switches kernels through Limine (Update > Kernel, hidden here). Ubuntu boots with GRUB, so there's
+# nothing to switch. The menu still asks for the list whenever its search runs (the "kernels" provider), so
+# get and list answer quietly with none; anything else gets omarchy-ubuntu-unsupported's notice.
+case ${1:-} in
+get | list) exit 0 ;;
+esac
+echo "omarchy-kernel is not available on Ubuntu." >&2
+notify-send -u low "Not available on Ubuntu" "omarchy-kernel is Arch-specific and was skipped." 2>/dev/null
+exit 1
