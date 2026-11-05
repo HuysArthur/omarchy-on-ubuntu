@@ -7,9 +7,9 @@ dofile((os.getenv("OMARCHY_PATH") or (os.getenv("HOME") .. "/.local/share/omarch
 -- Disable all Omarchy default bindings. Add your own in hypr/bindings.lua.
 -- omarchy_default_bindings = false
 --
--- Bindings for apps Omarchy preinstalls on Arch (Spotify, Signal, HEY, ...).
--- Turn back on for the ones you install yourself.
-omarchy_preinstalled_bindings = false
+-- Or disable only bindings for Omarchy's preinstalled apps/web apps while
+-- keeping core window-manager bindings (Remove > Preinstalls does this too):
+-- omarchy_preinstalled_bindings = false
 
 require("default.hypr.omarchy")
 dofile(os.getenv("HOME") .. "/.local/share/omarchy-ubuntu/lua/hypr.lua")

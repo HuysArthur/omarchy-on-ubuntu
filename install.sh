@@ -5,7 +5,7 @@ set -euo pipefail
 
 REPO=$(cd "$(dirname "$0")" && pwd)
 OMARCHY_REPO=https://github.com/basecamp/omarchy
-OMARCHY_REF=v4.0.6
+OMARCHY_REF=v4.5.0
 NERD_FONTS_VERSION=v3.4.0
 # Herdr (Omarchy's terminal workspace manager, Super+Ctrl+Return) is an Arch package; on Ubuntu we use the
 # static release binary. Checksum from https://herdr.dev/latest.json. herdr updates itself afterwards (herdr update).
@@ -27,7 +27,9 @@ PACKAGES=(
   btop fzf ripgrep bat eza fd-find zoxide fastfetch tree-sitter-cli lazygit neovim
   tesseract-ocr tesseract-ocr-eng zbar-tools qrencode libnotify-bin libxkbcommon-tools
   fonts-noto-color-emoji fonts-noto-cjk fonts-jetbrains-mono git curl xz-utils unzip
+  x11-xserver-utils  # xsetroot, for the startup cursor
   python3-gi  # omarchy-idle-inhibit-bridge
+  pulseaudio-utils  # pactl: Omarchy's volume keys, output switcher and audio panel
 )
 
 say() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
@@ -166,6 +168,12 @@ cp -a "$REPO/layer" "$LAYER"
 # adds the ones generated for this machine.
 cp -a "$REPO/config" "$LAYER/config"
 
+# Superwhisper (dictation) is installed from its vendor when you pick it; bring it to the pinned version.
+if [[ -f /opt/superwhisper/.omarchy-ubuntu-version ]] && ! "$LAYER/libexec/superwhisper" current; then
+  say "Updating Superwhisper"
+  "$LAYER/libexec/superwhisper" install || warn "Couldn't update Superwhisper; re-run install.sh to retry."
+fi
+
 # ---- configs ------------------------------------------------------------------
 say "Placing configs (replaced files are backed up to $BACKUP)"
 
@@ -209,6 +217,22 @@ systemctl --user daemon-reload
 systemctl --user enable --now omarchy-sleep-lock.service
 manage "$C/systemd/user/graphical-session.target.wants/omarchy-sleep-lock.service"
 
+# owe, Omarchy's wallpaper engine (video backgrounds, theme intros), from the Hyprland package. Its daemon
+# draws the desktop background, so like sleep-lock it only starts where OMARCHY_PATH is set (not in GNOME).
+tmp=$(mktemp)
+sed 's|^\[Unit\]$|[Unit]\nConditionEnvironment=OMARCHY_PATH\nConditionEnvironment=WAYLAND_DISPLAY|' \
+  /opt/hyprland/share/owe/owed.service >"$tmp"
+grep -q '^ConditionEnvironment=OMARCHY_PATH$' "$tmp" || die "owed.service has no [Unit] section; update install.sh."
+put "$tmp" "$C/systemd/user/owed.service"
+manage "$C/systemd/user/owed.service"
+rm -f "$tmp"
+systemctl --user daemon-reload
+systemctl --user enable --now owed.service
+manage "$C/systemd/user/graphical-session.target.wants/owed.service"
+# Tells owe to pick up a new theme's background (Omarchy runs `omarchy-hook-install theme-set` with it).
+put /opt/hyprland/share/owe/10-owe-sync "$C/omarchy/hooks/theme-set.d/10-owe-sync"
+manage "$C/omarchy/hooks/theme-set.d/10-owe-sync"
+
 # Start the Hyprland session's settings from a copy of the GNOME ones (fonts, keyboard, app prefs).
 if [[ ! -e $C/dconf/hyprland && -f $C/dconf/user ]]; then
   cp "$C/dconf/user" "$C/dconf/hyprland"
@@ -216,6 +240,19 @@ if [[ ! -e $C/dconf/hyprland && -f $C/dconf/user ]]; then
 fi
 
 seed_configs
+
+# Omarchy's own XKB option, omarchy:shift_caps_compose (Caps Lock stays Caps Lock, Shift + Caps Lock is
+# Compose). Omarchy puts it in /etc/xkb; libxkbcommon also reads ~/.config/xkb. The rules file includes the
+# system's rules and only adds that option, so every other keymap, GNOME's included, comes out the same.
+# A file of your own there is left alone.
+for f in rules/evdev symbols/omarchy; do
+  if [[ -e $C/xkb/$f ]] && ! grep -qxF "$C/xkb/$f" "$MANIFEST" 2>/dev/null; then
+    warn "Keeping your $C/xkb/$f. Omarchy's Shift + Caps Lock compose key needs $OMARCHY_PATH/etc/xkb/$f there."
+    continue
+  fi
+  put "$OMARCHY_PATH/etc/xkb/$f" "$C/xkb/$f"
+  manage "$C/xkb/$f"
+done
 
 # ---- agent skills -------------------------------------------------------------
 # Omarchy's skills teach coding agents how this desktop is put together (Hyprland, the bar, plugins, themes,

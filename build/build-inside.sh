@@ -70,13 +70,107 @@ fetch hyprland-protocols  "$GH/hyprland-protocols"  "$HYPRLAND_PROTOCOLS_REV";  
 fetch Hyprland "$GH/Hyprland" "$HYPRLAND_TAG"
 cmake_build Hyprland -DNO_HYPRPM=ON -DNO_UWSM=ON
 
-fetch quickshell https://git.outfoxxed.me/quickshell/quickshell "$QUICKSHELL_TAG"
+fetch quickshell https://git.outfoxxed.me/quickshell/quickshell "$QUICKSHELL_REV"
 cmake_build quickshell -DDISTRIBUTOR="omarchy-ubuntu" -DCRASH_HANDLER=OFF -DINSTALL_QML_PREFIX=lib/qt6/qml
 
 fetch ttfx https://github.com/omacom/ttfx "$TTFX_TAG"
 echo "==> ttfx"
 CARGO_HOME=/work/cargo cargo build --locked --release --manifest-path "$SRC/ttfx/Cargo.toml" --target-dir "$BLD/ttfx"
 install -m755 "$BLD/ttfx/release/ttfx" "$PREFIX/bin/ttfx"
+
+# Omarchy's screenshot tool (omarchy-capture-screenshot runs it since Omarchy 4.5); not in Ubuntu's archive.
+fetch omasnap https://github.com/omacom/omasnap "$OMASNAP_TAG"
+cmake_build omasnap
+
+# owe, Omarchy's wallpaper engine (video backgrounds, theme intros), and its lock-screen QML module.
+# install.sh places the user unit and the theme-set hook from share/owe.
+fetch owe https://github.com/omacom/owe "$OWE_TAG"
+echo "==> owe"
+[ -d "$BLD/owe" ] || meson setup "$BLD/owe" "$SRC/owe" --prefix=$PREFIX --libdir=lib --buildtype=release
+meson install -C "$BLD/owe" --quiet
+install -Dm755 "$SRC/owe/hooks/owe-idle" "$PREFIX/bin/owe-idle"
+install -Dm644 "$SRC/owe/hooks/theme-set.d/10-owe-sync" "$PREFIX/share/owe/10-owe-sync"
+sed "s|%h/.local/bin/owed|$PREFIX/bin/owed|" "$SRC/owe/systemd/owed.service" > "$PREFIX/share/owe/owed.service"
+echo "==> owe-lockfeed"
+cmake -S "$SRC/owe/qml-plugin" -B "$BLD/owe-lockfeed" -G Ninja -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_INSTALL_LIBDIR=lib -DBUILD_TESTING=OFF
+cmake --build "$BLD/owe-lockfeed" -j"$JOBS"
+cmake --install "$BLD/owe-lockfeed"
+
+# Titlebars for Omarchy's floating workspaces: a Hyprland plugin, so it has to match this exact Hyprland.
+# Hyprland's headers include lua.h, which hyprland.pc doesn't point at (Ubuntu keeps it in /usr/include/lua5.5).
+fetch omarchy-hyprland-titlebars https://github.com/omacom/omarchy-hyprland-titlebars "$TITLEBARS_TAG"
+cmake_build omarchy-hyprland-titlebars -DCMAKE_CXX_FLAGS="$(pkg-config --cflags lua55)"
+
+# ---- Omarchy's apps ----
+# Launchers and icons go to $PREFIX/share, which only the Hyprland session adds to XDG_DATA_DIRS.
+APPS=$PREFIX/share/applications
+ICONS=$PREFIX/share/icons/hicolor
+
+# download URL SHA256 FILE: a release asset, checked against the pinned checksum.
+download() {
+  [ -f "$3" ] && echo "$2  $3" | sha256sum -c --quiet - 2>/dev/null && return
+  curl -fsSL -o "$3.part" "$1"
+  echo "$2  $3.part" | sha256sum -c --quiet -
+  mv "$3.part" "$3"
+}
+
+# Disktree, the disk-usage treemap (Omarchy's Disk Usage). Its source needs a newer Rust than Ubuntu has,
+# so this is the upstream release binary.
+echo "==> disktree"
+dt=disktree-${DISKTREE_TAG#v}-x86_64-linux
+download "https://github.com/tobi/disktree/releases/download/$DISKTREE_TAG/$dt.tar.gz" "$DISKTREE_SHA256" "$SRC/$dt.tar.gz"
+rm -rf "$BLD/$dt" && tar -xzf "$SRC/$dt.tar.gz" -C "$BLD"
+install -Dm755 "$BLD/$dt/disktree" "$PREFIX/bin/disktree"
+mkdir -p "$APPS"
+sed -e 's|@BINDIR@/||' -e "s|@VERSION@|${DISKTREE_TAG#v}|" "$BLD/$dt/disktree.desktop.in" > "$APPS/disktree.desktop"
+install -Dm644 "$BLD/$dt/disktree.svg" "$ICONS/scalable/apps/disktree.svg"
+
+# Gliff, Hyprland remote desktop over SSH (the bar shows its sessions).
+fetch gliff https://github.com/omacom/gliff "$GLIFF_TAG"
+echo "==> gliff"
+CARGO_HOME=/work/cargo cargo build --locked --release --manifest-path "$SRC/gliff/Cargo.toml" --target-dir "$BLD/gliff"
+for bin in gliff gliff-server gliff-probe; do install -m755 "$BLD/gliff/release/$bin" "$PREFIX/bin/$bin"; done
+install -Dm644 "$SRC/gliff/pkgbuild/gliff.desktop" "$APPS/gliff.desktop"
+install -Dm644 "$SRC/gliff/pkgbuild/gliff.svg" "$ICONS/scalable/apps/gliff.svg"
+
+# Omarchy's Qt apps (calculator, writer, video cutter, presentations, webcam recorder, PDF signing) all build
+# the same way: qmake6, with a launcher and icon in pkgbuild/.
+qt_app() {
+  local name=$1 url=$2 rev=$3
+  fetch "$name" "$url" "$rev"
+  echo "==> $name"
+  mkdir -p "$BLD/$name"
+  (cd "$BLD/$name" && qmake6 "$SRC/$name/$name.pro" && make -j"$JOBS")
+  install -m755 "$BLD/$name/$name" "$PREFIX/bin/$name"
+  install -Dm644 "$SRC/$name/pkgbuild/$name.desktop" "$APPS/$name.desktop"
+  install -Dm644 "$SRC/$name/pkgbuild/$name.svg" "$ICONS/scalable/apps/$name.svg"
+}
+qt_app omacalc   https://github.com/omacom-io/omacalc "$OMACALC_TAG"
+qt_app omawrite  https://github.com/omacom/omawrite   "$OMAWRITE_TAG"
+qt_app omacut    https://github.com/omacom/omacut     "$OMACUT_TAG"
+qt_app hype      https://github.com/omacom/hype       "$HYPE_TAG"
+qt_app monologue https://github.com/omacom/monologue  "$MONOLOGUE_TAG"
+qt_app signed    https://github.com/omacom/signed     "$SIGNED_TAG"
+
+# Aether, Omarchy's theme designer: a Wails (Go + web) app, so the upstream release binary; launchers and
+# icon from the tagged source.
+fetch aether https://github.com/omacom/aether "$AETHER_TAG"
+echo "==> aether"
+download "https://github.com/omacom/aether/releases/download/$AETHER_TAG/aether-linux-amd64" "$AETHER_SHA256" "$SRC/aether-linux-amd64-$AETHER_TAG"
+install -m755 "$SRC/aether-linux-amd64-$AETHER_TAG" "$PREFIX/bin/aether"
+install -Dm644 "$SRC/aether/build/linux/aether.desktop" "$APPS/aether.desktop"
+install -Dm644 "$SRC/aether/li.oever.aether.url-handler.desktop" "$APPS/li.oever.aether.url-handler.desktop"
+install -Dm644 "$SRC/aether/assets/aether-icon-512.png" "$ICONS/512x512/apps/aether.png"
+
+# cliamp, the terminal music player (Super+Shift+Alt+M).
+fetch cliamp https://github.com/bjarneo/cliamp "$CLIAMP_TAG"
+echo "==> cliamp"
+(cd "$SRC/cliamp" && GOTOOLCHAIN=auto GOPATH=/work/go GOCACHE=/work/go-cache CGO_ENABLED=1 \
+  go build -trimpath -buildmode=pie -ldflags="-s -w -X main.version=$CLIAMP_TAG -linkmode=external" -o "$BLD/cliamp/cliamp" .)
+install -m755 "$BLD/cliamp/cliamp" "$PREFIX/bin/cliamp"
+install -Dm644 "$SRC/cliamp/cliamp.desktop" "$APPS/cliamp.desktop"
+install -Dm644 "$SRC/cliamp/Cliamp.png" "$ICONS/512x512/apps/cliamp.png"
 
 # ---- package ----
 VERSION="${HYPRLAND_TAG#v}-${PKG_REVISION}~ubuntu26.04"
@@ -96,6 +190,8 @@ cat > "$R/bin/hyprland-session" <<'EOF'
 # Login entry point for the "Hyprland (Omarchy)" session. Per-user environment lives in ~/.config/uwsm/env.
 export PATH="/opt/hyprland/bin:$PATH"
 export QML_IMPORT_PATH="/opt/hyprland/lib/qt6/qml${QML_IMPORT_PATH:+:$QML_IMPORT_PATH}"
+# The session adds /opt/hyprland/share to XDG_DATA_DIRS (~/.config/uwsm/env); remember the user manager's own.
+data_dirs=$(systemctl --user show-environment 2>/dev/null | sed -n 's/^XDG_DATA_DIRS=//p')
 
 if command -v uwsm >/dev/null 2>&1; then
   uwsm start -e -D Hyprland -N "Hyprland (Omarchy)" -- /opt/hyprland/bin/start-hyprland
@@ -105,6 +201,11 @@ fi
 
 # The systemd user manager can outlive this session; keep its variables out of a following GNOME login.
 systemctl --user unset-environment DCONF_PROFILE OMARCHY_PATH QML_IMPORT_PATH HYPRLAND_INSTANCE_SIGNATURE 2>/dev/null
+if [ -n "$data_dirs" ]; then
+  systemctl --user set-environment "XDG_DATA_DIRS=$data_dirs" 2>/dev/null
+else
+  systemctl --user unset-environment XDG_DATA_DIRS 2>/dev/null
+fi
 EOF
 chmod 755 "$R/bin/hyprland-session"
 
@@ -121,6 +222,7 @@ mapfile -t ELFS < <(find "$R" -type f -exec sh -c 'file -b "$1" | grep -q "^ELF"
 strip --strip-unneeded "${ELFS[@]}"
 
 # dpkg-shlibdeps wants a debian/control in cwd; our own libs in /opt are resolved via -l and skipped.
+# Every other library an ELF needs must be installed in the builder (the Containerfile), prebuilt ones included.
 TMPC=$(mktemp -d); mkdir -p "$TMPC/debian"; printf 'Source: x\n\nPackage: x\nArchitecture: any\n' > "$TMPC/debian/control"
 SHLIBS=$(cd "$TMPC" && dpkg-shlibdeps -O -l"$R/lib" --ignore-missing-info "${ELFS[@]}" | sed -n 's/^shlibs:Depends=//p')
 rm -rf "$TMPC"
@@ -130,17 +232,23 @@ Package: $PKG
 Version: $VERSION
 Architecture: amd64
 Maintainer: Arthur Huys <arthur.huys@gmail.com>
-Depends: $SHLIBS, xwayland, uwsm, qt6-wayland, qt6-svg-plugins, qt6-image-formats-plugins,
+Depends: $SHLIBS, xwayland, uwsm, qt6-wayland, qt6-svg-plugins, qt6-image-formats-plugins, layer-shell-qt,
  qml6-module-qtquick, qml6-module-qtquick-controls, qml6-module-qtquick-layouts,
  qml6-module-qtquick-shapes, qml6-module-qtquick-effects, qml6-module-qtquick-window,
- qml6-module-qtqml-models, qml6-module-qtqml-workerscript
-Recommends: xdg-desktop-portal-hyprland, xdg-desktop-portal-gtk
+ qml6-module-qtqml-models, qml6-module-qtqml-workerscript,
+ qml6-module-qtqml, qml6-module-qtquick-templates, qml6-module-qtquick-dialogs, qml6-module-qtmultimedia,
+ ffmpeg, source-highlight, libvulkan1
+Recommends: xdg-desktop-portal-hyprland, xdg-desktop-portal-gtk, yt-dlp
 Section: x11
 Priority: optional
 Installed-Size: $(du -sk "$STAGE/opt" | cut -f1)
-Description: Hyprland $HYPRLAND_TAG, Quickshell $QUICKSHELL_TAG and ttfx $TTFX_TAG, self-contained in /opt/hyprland
+Description: Hyprland $HYPRLAND_TAG and Omarchy's programs, self-contained in /opt/hyprland
  Built for Ubuntu 26.04. Adds a "Hyprland (Omarchy)" login session next to GNOME
  and does not touch any files from Ubuntu's own packages.
+ .
+ Includes Quickshell ${QUICKSHELL_REV:0:7}, ttfx $TTFX_TAG, omasnap $OMASNAP_TAG,
+ owe $OWE_TAG and Omarchy's titlebars plugin $TITLEBARS_TAG, and Omarchy's apps:
+ Disktree, Gliff, Omacalc, Omawrite, Omacut, Hype, Monologue, Signed, Aether and cliamp.
 EOF
 
 dpkg-deb --root-owner-group -Zzstd --build "$STAGE" "/out/${PKG}_${VERSION}_amd64.deb"

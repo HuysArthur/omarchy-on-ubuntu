@@ -1,0 +1,79 @@
+#!/bin/bash
+# Installs or removes Superwhisper, Omarchy 4.5's default dictation, as Omarchy's Arch package does
+# (superwhisper-bin): the vendor's app in /opt/superwhisper, launcher and helpers from ../superwhisper/.
+# Superwhisper is proprietary, so it's downloaded from the vendor here, never bundled; the version and
+# checksum are pinned. Arch paths under /usr are /usr/local here, and the daemon and launcher are
+# Hyprland-only (ConditionEnvironment=OMARCHY_PATH, OnlyShowIn=Hyprland).
+#
+#   superwhisper install   (omarchy-pkg-add superwhisper-bin; also re-run by install.sh after a version bump)
+#   superwhisper remove    (omarchy-pkg-drop superwhisper-bin)
+#   superwhisper current   (exit 0 if the pinned version is installed)
+set -euo pipefail
+
+VERSION=1.2.0
+SHA256=28bc5758ed6cf42468b97ef940ec2a96b114e6b6ea03bcb2c04bc678857d02f0
+URL=https://tux.superwhisper.com/x86_64/v$VERSION/superwhisper-omarchy-x86_64-$VERSION.tar.zst
+# Runtime dependencies of Arch's superwhisper-bin, by their Ubuntu names.
+DEPS=(python3 python3-gi python3-gi-cairo gir1.2-gtk-4.0 gir1.2-gtk4layershell-1.0 libgtk4-layer-shell0
+  at-spi2-core pipewire-pulse libnotify-bin wl-clipboard ffmpeg libvulkan1 librsvg2-2 fontconfig foot
+  libgomp1 xdg-utils zstd)
+
+HERE=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../superwhisper
+APP=/opt/superwhisper
+STAMP=$APP/.omarchy-ubuntu-version
+L=/usr/local
+FILES=(
+  "$L/bin/superwhisper" "$L/lib/systemd/user/superwhisper.service" "$L/share/applications/superwhisper.desktop"
+  "$L/share/applications/superwhisper-url.desktop" "$L/share/superwhisper/setup-user"
+  "$L/share/fonts/superwhisper/SuperwhisperTUI.ttf" "$L/share/fcitx5/addon/superwhisper.conf"
+)
+for size in 16 32 64 128 256 512 1024; do FILES+=("$L/share/icons/hicolor/${size}x${size}/apps/superwhisper.png"); done
+
+install_it() {
+  [[ $(uname -m) == x86_64 ]] || { echo "Superwhisper is only set up for x86_64 here." >&2; return 1; }
+  sudo apt-get install -y "${DEPS[@]}"
+  local tmp bundle
+  tmp=$(mktemp -d)
+  trap 'rm -rf "$tmp"' RETURN
+  echo "Downloading Superwhisper $VERSION from superwhisper.com"
+  curl -fL --progress-bar -o "$tmp/superwhisper.tar.zst" "$URL"
+  echo "$SHA256  $tmp/superwhisper.tar.zst" | sha256sum -c --quiet -
+  tar --zstd -xf "$tmp/superwhisper.tar.zst" -C "$tmp"
+  bundle=$tmp/superwhisper-omarchy-x86_64-$VERSION
+  [[ -x $bundle/app/run.sh ]] || { echo "Unexpected Superwhisper archive layout." >&2; return 1; }
+
+  sudo rm -rf "$APP"
+  sudo install -dm755 "$APP"
+  sudo cp -a --no-preserve=ownership "$bundle/app/." "$APP/"
+  # Omarchy owns its Dictation menu; omit the portable installer's menu writer.
+  sudo rm -f "$APP/scripts/omarchy-menu-rows.py"
+  sudo install -Dm755 "$HERE/superwhisper" "$L/bin/superwhisper"
+  sudo install -Dm644 "$HERE/superwhisper.service" "$L/lib/systemd/user/superwhisper.service"
+  sudo install -Dm644 "$HERE/superwhisper.desktop" "$L/share/applications/superwhisper.desktop"
+  sudo install -Dm644 "$HERE/superwhisper-url.desktop" "$L/share/applications/superwhisper-url.desktop"
+  sudo install -Dm755 "$HERE/setup-user" "$L/share/superwhisper/setup-user"
+  sudo install -Dm644 "$bundle/app/assets/linux-status/SuperwhisperTUI.ttf" "$L/share/fonts/superwhisper/SuperwhisperTUI.ttf"
+  for size in 16 32 64 128 256 512 1024; do
+    sudo install -Dm644 "$bundle/app/assets/app-icon/$size.png" "$L/share/icons/hicolor/${size}x${size}/apps/superwhisper.png"
+  done
+  sudo install -dm755 "$L/share/fcitx5/addon"
+  sed "s|@LIBRARY@|$APP/lib/fcitx5/libsuperwhisper-fcitx5|" "$bundle/app/assets/fcitx5/superwhisper.conf.in" |
+    sudo tee "$L/share/fcitx5/addon/superwhisper.conf" >/dev/null
+  echo "$VERSION" | sudo tee "$STAMP" >/dev/null
+  fc-cache -f >/dev/null 2>&1 || true
+  systemctl --user daemon-reload
+}
+
+remove_it() {
+  systemctl --user disable --now superwhisper.service 2>/dev/null || true
+  sudo rm -f "${FILES[@]}"
+  sudo rm -rf "$APP" "$L/share/superwhisper" "$L/share/fonts/superwhisper"
+  systemctl --user daemon-reload
+}
+
+case ${1:-} in
+install) install_it ;;
+remove) remove_it ;;
+current) [[ -f $STAMP && $(<"$STAMP") == "$VERSION" ]] ;;
+*) echo "Usage: superwhisper install|remove|current" >&2; exit 2 ;;
+esac

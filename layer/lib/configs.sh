@@ -15,8 +15,10 @@ MANIFEST=$STATE/manifest
 # instead of only creating the ones you don't have.
 RESET_CONFIGS=
 
-# Ours: session environment, Hyprland entry point, separate dconf profile.
-OWN_CONFIGS=(uwsm/env hypr/hyprland.lua dconf/hyprland.profile)
+# Ours: session environment, Hyprland entry point, separate dconf profile, and a drop-in that keeps Omarchy's
+# speaker tuning (WantedBy=graphical-session.target, which GNOME reaches too) out of GNOME.
+OWN_CONFIGS=(uwsm/env hypr/hyprland.lua dconf/hyprland.profile
+  systemd/user/omarchy-speaker-tuning.service.d/omarchy-ubuntu.conf)
 
 record() { mkdir -p "$STATE"; grep -qxF "$1" "$MANIFEST" 2>/dev/null || echo "$1" >>"$MANIFEST"; }
 
@@ -52,25 +54,45 @@ seed_configs() {
     put "$OMARCHY_PATH/config/hypr/$f.lua" "$C/hypr/$f.lua" --if-missing
   done
 
-  # input.lua and monitors.lua are generated for this machine. They go in the layer's config/ first, where
-  # omarchy-refresh-config finds them.
-  mkdir -p "$LAYER/config/hypr"
+  # keyboard-layouts, input.lua and monitors.lua are generated for this machine. They go in the layer's config/
+  # first, where omarchy-refresh-config finds them.
+  mkdir -p "$LAYER/config/hypr" "$LAYER/config/omarchy"
 
+  # Keyboard layout. Omarchy reads it from ~/.config/omarchy/keyboard-layouts, which Setup > Typing > Keyboard
+  # Layouts writes (on Arch it falls back to /etc/vconsole.conf). Start it from Ubuntu's /etc/default/keyboard.
   # shellcheck disable=SC1091
   . /etc/default/keyboard 2>/dev/null || true
-  cat >"$LAYER/config/hypr/input.lua" <<EOF
--- Personal input overrides; settings here replace Omarchy's defaults.
--- Keyboard layout taken from Ubuntu (/etc/default/keyboard) at install time.
--- See $OMARCHY_PATH/config/hypr/input.lua for more examples.
-hl.config({
-  input = {
-    kb_layout = "${XKBLAYOUT:-us}",
-    kb_variant = "${XKBVARIANT:-}",
-    kb_options = "compose:caps${XKBOPTIONS:+,$XKBOPTIONS}",
-  },
-})
-EOF
-  put "$LAYER/config/hypr/input.lua" "$C/hypr/input.lua" --if-missing
+  printf 'XKBLAYOUT=%s\nXKBVARIANT=%s\n' "${XKBLAYOUT:-us}" "${XKBVARIANT:-}" >"$LAYER/config/omarchy/keyboard-layouts"
+  put "$LAYER/config/omarchy/keyboard-layouts" "$C/omarchy/keyboard-layouts" --if-missing
+
+  # Personal input overrides: Omarchy's template, plus Ubuntu's own XKB options after Omarchy's (whose
+  # omarchy:shift_caps_compose install.sh places in ~/.config/xkb).
+  cp "$OMARCHY_PATH/config/hypr/input.lua" "$LAYER/config/hypr/input.lua"
+  if [[ -n ${XKBOPTIONS:-} ]]; then
+    printf '\n-- Keyboard options from Ubuntu (/etc/default/keyboard), after Omarchy'"'"'s own.\n%s\n' \
+      "hl.config({ input = { kb_options = \"omarchy:shift_caps_compose,$XKBOPTIONS\" } })" >>"$LAYER/config/hypr/input.lua"
+  fi
+  # Before Omarchy 4.5 this put the layout into input.lua, which would now override Setup > Typing > Keyboard
+  # Layouts. Replace that file if it's still exactly as it was written.
+  tmp=$(mktemp)
+  {
+    echo "-- Personal input overrides; settings here replace Omarchy's defaults."
+    echo "-- Keyboard layout taken from Ubuntu (/etc/default/keyboard) at install time."
+    echo "-- See $OMARCHY_PATH/config/hypr/input.lua for more examples."
+    echo "hl.config({"
+    echo "  input = {"
+    echo "    kb_layout = \"${XKBLAYOUT:-us}\","
+    echo "    kb_variant = \"${XKBVARIANT:-}\","
+    echo "    kb_options = \"compose:caps${XKBOPTIONS:+,$XKBOPTIONS}\","
+    echo "  },"
+    echo "})"
+  } >"$tmp"
+  if cmp -s "$tmp" "$C/hypr/input.lua"; then
+    put "$LAYER/config/hypr/input.lua" "$C/hypr/input.lua"
+  else
+    put "$LAYER/config/hypr/input.lua" "$C/hypr/input.lua" --if-missing
+  fi
+  rm -f "$tmp"
 
   # Omarchy assumes HiDPI (scale 2). Use 1 when every connected screen is at most 1920px wide.
   for status in /sys/class/drm/card*-*/status; do
@@ -97,8 +119,15 @@ EOF
   put "$OMARCHY_PATH/logo.txt" "$C/omarchy/branding/screensaver.txt" --if-missing
   put "$OMARCHY_PATH/icon.txt" "$C/omarchy/branding/about.txt" --if-missing
 
-  # Portal choice (screen sharing, file pickers) for the Hyprland session; only read when the desktop is Hyprland.
-  put /opt/hyprland/share/xdg-desktop-portal/hyprland-portals.conf "$C/xdg-desktop-portal/hyprland-portals.conf" --if-missing
+  # Portal choice (screen sharing, file pickers, and since Omarchy 4.5 GNOME Keyring as the Secret portal) for the
+  # Hyprland session; only read when the desktop is Hyprland. Earlier installs copied Hyprland's own file, which
+  # lacks the Secret portal: replace it if it's unchanged.
+  src=$OMARCHY_PATH/config/xdg-desktop-portal/hyprland-portals.conf
+  if cmp -s /opt/hyprland/share/xdg-desktop-portal/hyprland-portals.conf "$C/xdg-desktop-portal/hyprland-portals.conf"; then
+    put "$src" "$C/xdg-desktop-portal/hyprland-portals.conf"
+  else
+    put "$src" "$C/xdg-desktop-portal/hyprland-portals.conf" --if-missing
+  fi
 
   # Default apps and terminal for the Hyprland session only (desktop-specific files GNOME ignores).
   put "$OMARCHY_PATH/config/hyprland-mimeapps.list" "$C/hyprland-mimeapps.list" --if-missing

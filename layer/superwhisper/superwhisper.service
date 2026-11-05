@@ -1,0 +1,19 @@
+[Unit]
+Description=Superwhisper dictation
+After=graphical-session.target pipewire.service
+PartOf=graphical-session.target
+# omarchy-ubuntu: only in the Hyprland session, not in GNOME.
+ConditionEnvironment=OMARCHY_PATH
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/superwhisper daemon
+ExecStopPost=/usr/local/bin/superwhisper playback-restore
+Restart=on-failure
+RestartSec=2
+KillMode=control-group
+TimeoutStopSec=15
+UMask=0077
+
+[Install]
+WantedBy=graphical-session.target

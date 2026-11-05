@@ -1,0 +1,25 @@
+#!/bin/bash
+# Ubuntu version of Remove > Preinstalls. Upstream uninstalls Omarchy's preinstalled apps along with its web
+# apps, TUIs and mise tools. Here Omarchy's apps are part of the Hyprland package (and LibreOffice, Pinta and
+# Obsidian, if installed, are shared with GNOME), so this hides their launchers and turns off the shortcuts for
+# preinstalled apps instead. Web apps and TUIs you added yourself are left alone. Install > Preinstalls undoes it.
+
+# shellcheck source=../lib/preinstalls.sh
+. "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../lib/preinstalls.sh"
+
+gum confirm --affirmative "$(omarchy-i18n common.yes)" --negative "$(omarchy-i18n common.no)" \
+  "Hide Omarchy's preinstalled apps (Omacalc, Omawrite, Omacut, Hype, Monologue, Signed, Aether, cliamp) and turn off their shortcuts?" ||
+  exit 0
+
+mkdir -p "$PREINSTALL_APPS_DIR" "$(dirname "$PREINSTALLS_REMOVED")"
+for launcher in "${PREINSTALL_LAUNCHERS[@]}"; do
+  # A launcher of your own with this name stays as it is.
+  [[ -e $PREINSTALL_APPS_DIR/$launcher ]] && continue
+  # Hidden=true is the XDG way to delete a launcher from a lower data directory. GNOME has none of these
+  # apps, so these files change nothing there.
+  printf '%s\n[Desktop Entry]\nType=Application\nName=%s\nHidden=true\n' \
+    "$PREINSTALL_MARKER" "${launcher%.desktop}" >"$PREINSTALL_APPS_DIR/$launcher"
+done
+touch "$PREINSTALLS_REMOVED"
+omarchy-restart-hyprctl
+echo "Preinstalled apps hidden. Bring them back with Install > Preinstalls."

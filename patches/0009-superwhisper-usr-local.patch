@@ -1,0 +1,26 @@
+diff --git a/bin/omarchy-install-dictation-superwhisper b/bin/omarchy-install-dictation-superwhisper
+index 8ef296a..7fe2318 100755
+--- a/bin/omarchy-install-dictation-superwhisper
++++ b/bin/omarchy-install-dictation-superwhisper
+@@ -17,7 +17,7 @@ elif (($# > 0)); then
+ fi
+ 
+ omarchy-pkg-add superwhisper-bin
+-bash /usr/share/superwhisper/setup-user
++bash /usr/local/share/superwhisper/setup-user  # omarchy-ubuntu: /usr/local, see layer/libexec/superwhisper
+ # Existing profiles may still use Right Alt, which conflicts with Omarchy.
+ # Keep a recording shortcut active while moving away from that binding.
+ shortcuts=$(superwhisper shortcuts show)
+diff --git a/bin/omarchy-remove-dictation-superwhisper b/bin/omarchy-remove-dictation-superwhisper
+index 879e434..5760b55 100755
+--- a/bin/omarchy-remove-dictation-superwhisper
++++ b/bin/omarchy-remove-dictation-superwhisper
+@@ -21,7 +21,7 @@ unlink_package_link() {
+   fi
+ }
+ 
+-unlink_package_link "$HOME/.local/bin/superwhisper" /usr/bin/superwhisper
++unlink_package_link "$HOME/.local/bin/superwhisper" /usr/local/bin/superwhisper  # omarchy-ubuntu: /usr/local
+ unlink_package_link "$data_home/superwhisper/app/current" /opt/superwhisper
+ unlink_package_link "$config_home/omarchy/plugins/superwhisper-panel" /opt/superwhisper/assets/omarchy-plugin/superwhisper-panel
+ for agent in .agents .claude .codex .pi/agent; do
