@@ -70,7 +70,7 @@ localsend, Obsidian). Their menu entries work once you install them yourself.
 
 ## Changing it with an agent
 
-Omarchy's agent skills are set up for Claude Code, Codex, Pi and other agents that read `~/.agents/skills`,
+Omarchy's agent skills are set up for Claude Code, Codex, Pi, Gemini and other agents that read `~/.agents/skills`,
 together with an `omarchy-ubuntu` skill that tells them how this setup differs from Arch Omarchy. Ask your
 agent to change the bar, keybindings, window rules or theme. If it makes a mess, `omarchy reinstall configs`
 puts Omarchy's defaults back for the Omarchy session (your versions are backed up to
