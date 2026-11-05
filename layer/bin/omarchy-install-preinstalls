@@ -13,5 +13,6 @@ for launcher in "${PREINSTALL_LAUNCHERS[@]}"; do
   [[ -f $file && $(head -1 "$file") == "$PREINSTALL_MARKER" ]] && rm -f "$file"
 done
 rm -f "$PREINSTALLS_REMOVED"
+command -v mise >/dev/null && omarchy-mise-default-tools enable
 omarchy-restart-hyprctl
 echo "Preinstalled apps restored."

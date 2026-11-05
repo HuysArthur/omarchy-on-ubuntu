@@ -53,6 +53,18 @@ manage() {
   grep -qxF "$1" "$MANAGED.new" 2>/dev/null || echo "$1" >>"$MANAGED.new"
 }
 
+# forget PATH: stop tracking PATH (it's yours now), so prune and uninstall.sh leave it alone.
+forget() {
+  local list tmp
+  for list in "$MANIFEST" "$MANAGED"; do
+    [[ -f $list ]] || continue
+    tmp=$(mktemp)
+    grep -vxF -- "$1" "$list" >"$tmp" || true
+    cat "$tmp" >"$list"
+    rm -f "$tmp"
+  done
+}
+
 # Remove what the previous run managed and this one didn't, restoring what it had replaced.
 prune() {
   local path rel dir units=
@@ -354,10 +366,11 @@ if [[ ! -e $C/hyprland-xdg-terminals.list ]]; then
 fi
 
 # ---- shell --------------------------------------------------------------------
-# Omarchy's herdr layout commands (hdl, hds, hdlm, hsl) and `h`, for bash and zsh. The line only sources them
-# when OMARCHY_PATH is set, i.e. in the Hyprland session; GNOME terminals skip it. Not backed up on purpose:
-# uninstall.sh removes just this line, so later edits to your rc files survive.
-RC_LINE='if [ -n "$OMARCHY_PATH" ] && [ -f ~/.local/share/omarchy-ubuntu/shell/herdr.sh ]; then . ~/.local/share/omarchy-ubuntu/shell/herdr.sh; fi # omarchy-ubuntu'
+# Omarchy's herdr layout commands (hdl, hds, hdlm, hsl), `h`, and the coding-agent shortcuts (a, c, cx, cy, mup),
+# for bash and zsh. The line only sources them when OMARCHY_PATH is set, i.e. in the Hyprland session; GNOME
+# terminals skip it. Not backed up on purpose: uninstall.sh removes just this line, so later edits to your rc
+# files survive.
+RC_LINE='if [ -n "$OMARCHY_PATH" ] && [ -f ~/.local/share/omarchy-ubuntu/shell/omarchy.sh ]; then . ~/.local/share/omarchy-ubuntu/shell/omarchy.sh; fi # omarchy-ubuntu'
 for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do
   [[ -f $rc ]] || continue
   if ! grep -qF '# omarchy-ubuntu' "$rc"; then
@@ -377,6 +390,55 @@ done
 if grep -qxF "$HERDR_BIN" "$MANIFEST" 2>/dev/null && [[ -e $HERDR_BIN ]]; then
   manage "$HERDR_BIN"
 fi
+
+# ---- coding agents ------------------------------------------------------------
+# Omarchy 4.5 declares its coding agents (claude, codex, opencode, gemini, ...) and a few tools as lazy mise tools
+# in $OMARCHY_PATH/etc/mise/conf.d (on Arch, /etc/mise/conf.d): mise puts a shim for each in
+# ~/.local/share/mise/shims and installs the tool the first time it runs, and switching agent accounts goes
+# through mise command wrappers (~/.local/share/mise/command-wrappers/bin). Here mise reads that folder as its
+# system config only in the Hyprland session (MISE_SYSTEM_CONFIG_DIR in config/uwsm/env), which also puts those
+# two folders on PATH, so mise in GNOME and /etc/mise stay as they are. mise isn't in Ubuntu's archive: its PPA
+# keeps it updated with the rest of apt. Like herdr, this is an extra: if it fails, the install carries on.
+MISE_MINIMUM=2026.11.1 # lazy tools, system shims in $HOME and command wrappers, as Omarchy 4.5 uses them
+if ! command -v mise >/dev/null; then
+  say "Installing mise from its PPA (sudo)"
+  if ! { sudo apt-get install -y software-properties-common && sudo add-apt-repository -y ppa:jdxcode/mise &&
+    sudo apt-get install -y mise; }; then
+    warn "Couldn't install mise. Omarchy's coding agents need it; re-run install.sh to retry."
+    # Leave no source behind: the apt update this script and omarchy-update depend on would fail on a broken PPA.
+    sudo add-apt-repository -y --remove ppa:jdxcode/mise 2>/dev/null || true
+  fi
+fi
+if command -v mise >/dev/null; then
+  mise_version=$(mise --version 2>/dev/null | grep -oE '^[0-9]+\.[0-9]+\.[0-9]+' || true)
+  if [[ -z $mise_version || $(printf '%s\n' "$MISE_MINIMUM" "$mise_version" | sort -V | head -1) != "$MISE_MINIMUM" ]]; then
+    warn "mise ${mise_version:-(unknown version)} is older than $MISE_MINIMUM, which Omarchy's coding agents need. Update it (sudo apt upgrade mise, or mise self-update)."
+  fi
+  say "Setting up Omarchy's coding agents (mise shims)"
+  # What Omarchy's install/user/mise.sh does, with the session's system config.
+  MISE_SYSTEM_CONFIG_DIR=$OMARCHY_PATH/etc/mise MISE_OFFLINE=true mise reshim --system &&
+    MISE_SYSTEM_CONFIG_DIR=$OMARCHY_PATH/etc/mise MISE_OFFLINE=true mise reshim ||
+    warn "mise couldn't create the agents' shims (see above); re-run install.sh to retry."
+fi
+
+# Before Omarchy 4.5, this put a launcher per agent in ~/.local/bin (still listed in $STATE/agent-launchers on
+# machines that ran that version). They'd now shadow the shims: the ones that are still Omarchy's go with this
+# run's cleanup, and one an agent's own installer has since replaced is yours, so it's left alone.
+if [[ -f $STATE/agent-launchers ]]; then
+  # shellcheck source=layer/lib/launchers.sh
+  . "$LAYER/lib/launchers.sh"
+  while IFS= read -r launcher; do
+    [[ -e $launcher || -L $launcher ]] || continue
+    omarchy_launcher "$launcher" || forget "$launcher"
+  done <"$STATE/agent-launchers"
+  rm -f "$STATE/agent-launchers"
+fi
+# (The Cursor options that version copied to ~/.config/mise/conf.d are no longer placed, so this run's cleanup
+# removes them too: they now come from Omarchy's system config.)
+
+# herdr's status and session-restore integration for the agents you use, whether mise installed them or you did
+# (your own Claude Code, say). Omarchy doesn't set this up itself. omarchy-update runs it too.
+"$LAYER/bin/omarchy-ubuntu-herdr-integrations"
 
 # ---- fonts --------------------------------------------------------------------
 FONTS=$HOME/.local/share/fonts
