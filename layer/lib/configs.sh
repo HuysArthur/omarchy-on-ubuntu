@@ -96,7 +96,7 @@ seed_configs() {
 
   # Omarchy assumes HiDPI (scale 2). Use 1 when every connected screen is at most 1920px wide.
   for status in /sys/class/drm/card*-*/status; do
-    [[ $(<"$status") == connected ]] || continue
+    [[ -r $status && $(<"$status") == connected ]] || continue
     w=$(head -1 "$(dirname "$status")/modes" 2>/dev/null | cut -dx -f1)
     [[ $w =~ ^[0-9]+$ ]] && ((w > max_width)) && max_width=$w
   done

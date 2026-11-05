@@ -259,7 +259,8 @@ done
 # hooks) and how to diagnose a crash; omarchy-ubuntu tells them what differs here (apt instead of pacman, where
 # Omarchy lives, what GNOME shares). Linked where the agents look, as Omarchy's omarchy-provision-user does.
 # Hermes isn't set up on Ubuntu (Install > AI hides it), so its folders only get them if you have Hermes.
-skill_dirs=("$HOME/.agents/skills" "$HOME/.claude/skills" "$HOME/.codex/skills" "$HOME/.pi/agent/skills")
+skill_dirs=("$HOME/.agents/skills" "$HOME/.claude/skills" "$HOME/.codex/skills" "$HOME/.pi/agent/skills"
+  "$HOME/.gemini/config/skills")
 if [[ -d $HOME/.hermes ]]; then
   skill_dirs+=("$HOME/.hermes/skills")
   for profile in "$HOME"/.hermes/profiles/*/; do
