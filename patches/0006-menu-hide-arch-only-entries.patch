@@ -1,5 +1,5 @@
 diff --git a/default/omarchy/omarchy-menu.jsonc b/default/omarchy/omarchy-menu.jsonc
-index daf1003..592809a 100644
+index f92f3b8..b2641c9 100644
 --- a/default/omarchy/omarchy-menu.jsonc
 +++ b/default/omarchy/omarchy-menu.jsonc
 @@ -122,7 +122,7 @@
@@ -39,15 +39,15 @@ index daf1003..592809a 100644
    "setup.default.agent.opencode": {"icon":"","iconFont":"omarchy","label":"OpenCode","checked":"[[ \"$(omarchy-default-agent)\" == \"opencode\" ]]","action":"omarchy-default-agent opencode"},
    "setup.default.agent.ori": {"icon":"","iconFont":"omarchy","label":"Ori","checked":"[[ \"$(omarchy-default-agent)\" == \"ori\" ]]","action":"omarchy-default-agent ori"},
    "setup.default.agent.pi": {"icon":"","iconFont":"omarchy","label":"Pi","checked":"[[ \"$(omarchy-default-agent)\" == \"pi\" ]]","action":"omarchy-default-agent pi"},
-@@ -227,7 +227,7 @@
-   "setup.default.browser.edge": {"icon":"󰇩","label":"Edge","checked":"[[ \"$(omarchy-default-browser)\" == \"edge\" ]]","action":"omarchy-default-browser edge"},
-   "setup.default.browser.firefox": {"icon":"","label":"Firefox","checked":"[[ \"$(omarchy-default-browser)\" == \"firefox\" ]]","action":"omarchy-default-browser firefox"},
+@@ -229,7 +229,7 @@
    "setup.default.browser.zen": {"icon":"󰖟","label":"Zen","checked":"[[ \"$(omarchy-default-browser)\" == \"zen\" ]]","action":"omarchy-default-browser zen"},
--  "setup.default.dictation": {"icon":"","label":"Dictation","title":"Default Dictation"},
-+  "setup.default.dictation": {"icon":"","label":"Dictation","when":"false","title":"Default Dictation"},
+   "setup.default.dictation": {"icon":"","label":"Dictation","title":"Default Dictation"},
    "setup.default.dictation.superwhisper": {"icon":"","label":"Superwhisper","checked":"[[ \"$(omarchy-default-dictation)\" == \"superwhisper\" ]]","action":"omarchy-default-dictation superwhisper"},
-   "setup.default.dictation.voxtype": {"icon":"","label":"Voxtype","checked":"[[ \"$(omarchy-default-dictation)\" == \"voxtype\" ]]","action":"omarchy-default-dictation voxtype"},
+-  "setup.default.dictation.voxtype": {"icon":"","label":"Voxtype","checked":"[[ \"$(omarchy-default-dictation)\" == \"voxtype\" ]]","action":"omarchy-default-dictation voxtype"},
++  "setup.default.dictation.voxtype": {"icon":"","label":"Voxtype","when":"false","checked":"[[ \"$(omarchy-default-dictation)\" == \"voxtype\" ]]","action":"omarchy-default-dictation voxtype"},
    "setup.default.terminal": {"icon":"","label":"Terminal","title":"Default Terminal"},
+   "setup.default.terminal.alacritty": {"icon":"","label":"Alacritty","checked":"[[ \"$(omarchy-default-terminal)\" == \"alacritty\" ]]","action":"omarchy-default-terminal alacritty"},
+   "setup.default.terminal.foot": {"icon":"","label":"Foot","checked":"[[ \"$(omarchy-default-terminal)\" == \"foot\" ]]","action":"omarchy-default-terminal foot"},
 @@ -287,7 +287,7 @@
    "install.terminal": {"icon":"","label":"Terminal"},
    "install.tui": {"icon":"","label":"TUI","action":"omarchy-launch-floating-terminal-with-presentation omarchy-tui-install"},

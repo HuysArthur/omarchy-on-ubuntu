@@ -102,6 +102,38 @@ cmake --install "$BLD/owe-lockfeed"
 fetch omarchy-hyprland-titlebars https://github.com/omacom/omarchy-hyprland-titlebars "$TITLEBARS_TAG"
 cmake_build omarchy-hyprland-titlebars -DCMAKE_CXX_FLAGS="$(pkg-config --cflags lua55)"
 
+# ---- Omarchy's apps ----
+# Launchers and icons go to $PREFIX/share, which only the Hyprland session adds to XDG_DATA_DIRS.
+APPS=$PREFIX/share/applications
+ICONS=$PREFIX/share/icons/hicolor
+
+# download URL SHA256 FILE: a release asset, checked against the pinned checksum.
+download() {
+  [ -f "$3" ] && echo "$2  $3" | sha256sum -c --quiet - 2>/dev/null && return
+  curl -fsSL -o "$3.part" "$1"
+  echo "$2  $3.part" | sha256sum -c --quiet -
+  mv "$3.part" "$3"
+}
+
+# Disktree, the disk-usage treemap (Omarchy's Disk Usage). Its source needs a newer Rust than Ubuntu has,
+# so this is the upstream release binary.
+echo "==> disktree"
+dt=disktree-${DISKTREE_TAG#v}-x86_64-linux
+download "https://github.com/tobi/disktree/releases/download/$DISKTREE_TAG/$dt.tar.gz" "$DISKTREE_SHA256" "$SRC/$dt.tar.gz"
+rm -rf "$BLD/$dt" && tar -xzf "$SRC/$dt.tar.gz" -C "$BLD"
+install -Dm755 "$BLD/$dt/disktree" "$PREFIX/bin/disktree"
+mkdir -p "$APPS"
+sed -e 's|@BINDIR@/||' -e "s|@VERSION@|${DISKTREE_TAG#v}|" "$BLD/$dt/disktree.desktop.in" > "$APPS/disktree.desktop"
+install -Dm644 "$BLD/$dt/disktree.svg" "$ICONS/scalable/apps/disktree.svg"
+
+# Gliff, Hyprland remote desktop over SSH (the bar shows its sessions).
+fetch gliff https://github.com/omacom/gliff "$GLIFF_TAG"
+echo "==> gliff"
+CARGO_HOME=/work/cargo cargo build --locked --release --manifest-path "$SRC/gliff/Cargo.toml" --target-dir "$BLD/gliff"
+for bin in gliff gliff-server gliff-probe; do install -m755 "$BLD/gliff/release/$bin" "$PREFIX/bin/$bin"; done
+install -Dm644 "$SRC/gliff/pkgbuild/gliff.desktop" "$APPS/gliff.desktop"
+install -Dm644 "$SRC/gliff/pkgbuild/gliff.svg" "$ICONS/scalable/apps/gliff.svg"
+
 # ---- package ----
 VERSION="${HYPRLAND_TAG#v}-${PKG_REVISION}~ubuntu26.04"
 PKG=hyprland-opt
@@ -120,6 +152,8 @@ cat > "$R/bin/hyprland-session" <<'EOF'
 # Login entry point for the "Hyprland (Omarchy)" session. Per-user environment lives in ~/.config/uwsm/env.
 export PATH="/opt/hyprland/bin:$PATH"
 export QML_IMPORT_PATH="/opt/hyprland/lib/qt6/qml${QML_IMPORT_PATH:+:$QML_IMPORT_PATH}"
+# The session adds /opt/hyprland/share to XDG_DATA_DIRS (~/.config/uwsm/env); remember the user manager's own.
+data_dirs=$(systemctl --user show-environment 2>/dev/null | sed -n 's/^XDG_DATA_DIRS=//p')
 
 if command -v uwsm >/dev/null 2>&1; then
   uwsm start -e -D Hyprland -N "Hyprland (Omarchy)" -- /opt/hyprland/bin/start-hyprland
@@ -129,6 +163,11 @@ fi
 
 # The systemd user manager can outlive this session; keep its variables out of a following GNOME login.
 systemctl --user unset-environment DCONF_PROFILE OMARCHY_PATH QML_IMPORT_PATH HYPRLAND_INSTANCE_SIGNATURE 2>/dev/null
+if [ -n "$data_dirs" ]; then
+  systemctl --user set-environment "XDG_DATA_DIRS=$data_dirs" 2>/dev/null
+else
+  systemctl --user unset-environment XDG_DATA_DIRS 2>/dev/null
+fi
 EOF
 chmod 755 "$R/bin/hyprland-session"
 
@@ -145,6 +184,7 @@ mapfile -t ELFS < <(find "$R" -type f -exec sh -c 'file -b "$1" | grep -q "^ELF"
 strip --strip-unneeded "${ELFS[@]}"
 
 # dpkg-shlibdeps wants a debian/control in cwd; our own libs in /opt are resolved via -l and skipped.
+# Every other library an ELF needs must be installed in the builder (the Containerfile), prebuilt ones included.
 TMPC=$(mktemp -d); mkdir -p "$TMPC/debian"; printf 'Source: x\n\nPackage: x\nArchitecture: any\n' > "$TMPC/debian/control"
 SHLIBS=$(cd "$TMPC" && dpkg-shlibdeps -O -l"$R/lib" --ignore-missing-info "${ELFS[@]}" | sed -n 's/^shlibs:Depends=//p')
 rm -rf "$TMPC"
@@ -157,7 +197,7 @@ Maintainer: Arthur Huys <arthur.huys@gmail.com>
 Depends: $SHLIBS, xwayland, uwsm, qt6-wayland, qt6-svg-plugins, qt6-image-formats-plugins, layer-shell-qt,
  qml6-module-qtquick, qml6-module-qtquick-controls, qml6-module-qtquick-layouts,
  qml6-module-qtquick-shapes, qml6-module-qtquick-effects, qml6-module-qtquick-window,
- qml6-module-qtqml-models, qml6-module-qtqml-workerscript
+ qml6-module-qtqml-models, qml6-module-qtqml-workerscript, libvulkan1
 Recommends: xdg-desktop-portal-hyprland, xdg-desktop-portal-gtk
 Section: x11
 Priority: optional
@@ -167,7 +207,7 @@ Description: Hyprland $HYPRLAND_TAG and Omarchy's programs, self-contained in /o
  and does not touch any files from Ubuntu's own packages.
  .
  Includes Quickshell ${QUICKSHELL_REV:0:7}, ttfx $TTFX_TAG, omasnap $OMASNAP_TAG,
- owe $OWE_TAG and Omarchy's titlebars plugin $TITLEBARS_TAG.
+ owe $OWE_TAG and Omarchy's titlebars plugin $TITLEBARS_TAG, Disktree and Gliff.
 EOF
 
 dpkg-deb --root-owner-group -Zzstd --build "$STAGE" "/out/${PKG}_${VERSION}_amd64.deb"

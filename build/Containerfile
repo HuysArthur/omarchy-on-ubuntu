@@ -20,4 +20,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libjemalloc-dev libvulkan-dev cargo \
     wayland-protocols liblayershellqtinterface-dev libdeflate-dev \
     libmpv-dev libavformat-dev libavcodec-dev libavutil-dev libswscale-dev libepoxy-dev libsystemd-dev \
+    libgtk-4-dev libadwaita-1-dev libva-dev libdbus-1-dev nasm \
+    libxkbcommon-x11-0 \
  && rm -rf /var/lib/apt/lists/*

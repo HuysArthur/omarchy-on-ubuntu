@@ -174,6 +174,12 @@ say "Installing the Ubuntu layer into $LAYER"
 rm -rf "$LAYER"
 cp -a "$REPO/layer" "$LAYER"
 
+# Superwhisper (dictation) is installed from its vendor when you pick it; bring it to the pinned version.
+if [[ -f /opt/superwhisper/.omarchy-ubuntu-version ]] && ! "$LAYER/libexec/superwhisper" current; then
+  say "Updating Superwhisper"
+  "$LAYER/libexec/superwhisper" install || warn "Couldn't update Superwhisper; re-run install.sh to retry."
+fi
+
 # ---- configs ------------------------------------------------------------------
 say "Placing configs (replaced files are backed up to $BACKUP)"
 C=$HOME/.config
