@@ -1,0 +1,32 @@
+diff --git a/shell/plugins/background/Background.qml b/shell/plugins/background/Background.qml
+index 02126e3..115fa1c 100644
+--- a/shell/plugins/background/Background.qml
++++ b/shell/plugins/background/Background.qml
+@@ -390,9 +390,9 @@ Item {
+ 
+       function decodeSize(path) {
+         if (!sized || !path) return Qt.size(0, 0)
+-        var native = root.nativeSizes[path]
+-        if (native === undefined) return Qt.size(0, 0)
+-        if (native.width > 0 && (native.width < decodeWidth || native.height < decodeHeight)) return Qt.size(native.width, native.height)
++        var nativeSize = root.nativeSizes[path]
++        if (nativeSize === undefined) return Qt.size(0, 0)
++        if (nativeSize.width > 0 && (nativeSize.width < decodeWidth || nativeSize.height < decodeHeight)) return Qt.size(nativeSize.width, nativeSize.height)
+         return Qt.size(decodeWidth, decodeHeight)
+       }
+ 
+diff --git a/shell/services/BackgroundIntro.qml b/shell/services/BackgroundIntro.qml
+index 673aefa..0675347 100644
+--- a/shell/services/BackgroundIntro.qml
++++ b/shell/services/BackgroundIntro.qml
+@@ -304,8 +304,8 @@ Item {
+         sourceSize: {
+           var w = Math.ceil((parent.width || modelData.width) * modelData.devicePixelRatio)
+           var h = Math.ceil((parent.height || modelData.height) * modelData.devicePixelRatio)
+-          var native = root.themeNativeSize
+-          return native && (native.width < w || native.height < h) ? Qt.size(native.width, native.height) : Qt.size(w, h)
++          var nativeSize = root.themeNativeSize
++          return nativeSize && (nativeSize.width < w || nativeSize.height < h) ? Qt.size(nativeSize.width, nativeSize.height) : Qt.size(w, h)
+         }
+         fillMode: Image.PreserveAspectCrop
+         opacity: root.themeOpacity

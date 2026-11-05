@@ -22,6 +22,10 @@ Log out, click the gear icon on the login screen and choose **Hyprland (Omarchy)
 - **Super + Ctrl + Return** opens [herdr](https://herdr.dev), Omarchy's terminal workspace manager
   (prefix Ctrl+Space, **Super + Ctrl + K** lists its keys)
 
+Omarchy's own apps come with it, as on Arch: Omacalc, Omawrite, Omacut, Hype, Monologue, Signed, Aether,
+cliamp, Disktree and Gliff. They only appear in the Omarchy session. **Remove > Preinstalls** hides the
+preinstalled ones and turns off their shortcuts; **Install > Preinstalls** brings them back.
+
 ## Update
 
 Use **Update > Omarchy** in the menu, or run `omarchy-update`. It upgrades your apt packages and brings
@@ -51,12 +55,15 @@ replaced is restored.
 ## What doesn't work
 
 Some Omarchy features depend on Arch Linux: pacman/AUR updates (apt is used instead),
-bootloader/plymouth/hibernation setup, snapper snapshots and factory reset. Their menu entries are hidden:
-Install > AUR, Install > Editor > Emacs, Install > AI > Hermes Desktop and OpenClaw (and both under Setup >
-Default agent), Style > Unlock and Update > Config > Plymouth.
+bootloader/plymouth/hibernation setup, kernel switching, snapper snapshots and factory reset. Their menu
+entries are hidden: Install > AUR, Install > Editor > Emacs, Install > AI > Hermes Desktop, OpenClaw, Claude
+Desktop and Amp Desktop (Hermes and OpenClaw under Setup > Default agent too), Install > Service > Notion and
+Slack, Setup > Defaults > Dictation > Voxtype, Setup > Language, Setup > Typing > Input Methods, Appearance > Unlock,
+Update > Kernel and Update > Config > Plymouth.
 
 Install > Browser gets Chrome and Edge from their vendors' `.deb`, Brave from Brave's apt repository and Zen
-from Flathub, so they stay up to date with the rest of your system.
+from Flathub, so they stay up to date with the rest of your system. Superwhisper, Omarchy's dictation
+(Setup > Defaults > Dictation), is downloaded from superwhisper.com when you pick it.
 
 A few apps Omarchy expects aren't in Ubuntu's archive (hyprsunset, gpu-screen-recorder, tensaku,
 localsend, Obsidian). Their menu entries work once you install them yourself.
@@ -69,5 +76,5 @@ see [docs/development.md](docs/development.md).
 ## License
 
 MIT (see `LICENSE`). The Hyprland package bundles Hyprland and its libraries (BSD-3-Clause),
-Quickshell (LGPL-3.0) and ttfx (MIT), built unmodified from the sources pinned in `build/versions.env`.
+Quickshell (LGPL-3.0) and Omarchy's ttfx, omasnap, owe and titlebars plugin (MIT), built unmodified from the sources pinned in `build/versions.env`.
 Omarchy (MIT) is downloaded by `install.sh`, not included here.

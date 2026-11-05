@@ -9,12 +9,14 @@ as_root() { if ((EUID == 0)); then "$@"; else sudo "$@"; fi; }
 
 installed=()
 flatpaks=()
+vendors=()
 for p in "$@"; do
   pkg_installed "$p" || continue
   src=$(pkg_source "$p")
   case $src in
   deb:*) installed+=("${src#deb:}") ;;
   flatpak:*) flatpaks+=("${src#flatpak:}") ;;
+  vendor:*) vendors+=("${src#vendor:}") ;;
   esac
 done
 
@@ -38,4 +40,8 @@ fi
 if ((${#flatpaks[@]})); then
   as_root flatpak uninstall -y --noninteractive "${flatpaks[@]}" || exit 1
 fi
+
+for vendor in "${vendors[@]}"; do
+  "$PKG_LIBEXEC/$vendor" remove || exit 1
+done
 exit 0

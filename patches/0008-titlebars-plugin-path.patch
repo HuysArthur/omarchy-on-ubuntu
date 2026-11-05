@@ -1,0 +1,14 @@
+diff --git a/default/hypr/workspace-modes.lua b/default/hypr/workspace-modes.lua
+index 07eed95..363e1ba 100644
+--- a/default/hypr/workspace-modes.lua
++++ b/default/hypr/workspace-modes.lua
+@@ -23,7 +23,8 @@ local WORKSPACE_TAG = "omarchy-floating-workspace"
+ local OPENED_TAG = "omarchy-mode-opened"
+ local OPEN_RULE = "omarchy-floating-open-"
+ local LAST_WORKSPACE = 2147483647
+-local TITLEBARS = "/usr/lib/omarchy-hyprland-titlebars/titlebars.so"
++-- omarchy-ubuntu: the plugin is built into the Hyprland package under /opt/hyprland.
++local TITLEBARS = "/opt/hyprland/lib/omarchy-hyprland-titlebars/titlebars.so"
+ 
+ local M = {}
+ 

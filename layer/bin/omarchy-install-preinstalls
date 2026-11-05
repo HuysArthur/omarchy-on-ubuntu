@@ -1,0 +1,17 @@
+#!/bin/bash
+# Ubuntu version of Install > Preinstalls: shows the launchers omarchy-remove-preinstalls hid and turns the
+# shortcuts for preinstalled apps back on.
+
+# shellcheck source=../lib/preinstalls.sh
+. "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../lib/preinstalls.sh"
+
+gum confirm --affirmative "$(omarchy-i18n common.yes)" --negative "$(omarchy-i18n common.no)" \
+  "$(omarchy-i18n preinstalls.confirmRestore)" || exit 0
+
+for launcher in "${PREINSTALL_LAUNCHERS[@]}"; do
+  file=$PREINSTALL_APPS_DIR/$launcher
+  [[ -f $file && $(head -1 "$file") == "$PREINSTALL_MARKER" ]] && rm -f "$file"
+done
+rm -f "$PREINSTALLS_REMOVED"
+omarchy-restart-hyprctl
+echo "Preinstalled apps restored."

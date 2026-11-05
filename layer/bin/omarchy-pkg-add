@@ -1,7 +1,20 @@
 #!/bin/bash
 # Installs with apt instead of pacman. Arch and Ubuntu names often match; when they don't, apt says so.
+# Apps the layer installs from their vendor (lib/pkg-names.sh, "vendor:") run their libexec installer.
+
+# shellcheck source=../lib/pkg-names.sh
+. "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../lib/pkg-names.sh"
+
 missing=()
-for p in "$@"; do pacman -Qq "$p" >/dev/null 2>&1 || missing+=("$p"); done
+for p in "$@"; do
+  pacman -Qq "$p" >/dev/null 2>&1 && continue
+  src=$(pkg_source "$p")
+  if [[ $src == vendor:* ]]; then
+    "$PKG_LIBEXEC/${src#vendor:}" install || exit 1
+  else
+    missing+=("$p")
+  fi
+done
 ((${#missing[@]})) || exit 0
 if ((EUID == 0)); then
   apt-get install -y -- "${missing[@]}"
