@@ -71,5 +71,5 @@ see [docs/development.md](docs/development.md).
 ## License
 
 MIT (see `LICENSE`). The Hyprland package bundles Hyprland and its libraries (BSD-3-Clause),
-Quickshell (LGPL-3.0), ttfx (MIT) and omasnap (MIT), built unmodified from the sources pinned in `build/versions.env`.
+Quickshell (LGPL-3.0) and Omarchy's ttfx, omasnap, owe and titlebars plugin (MIT), built unmodified from the sources pinned in `build/versions.env`.
 Omarchy (MIT) is downloaded by `install.sh`, not included here.

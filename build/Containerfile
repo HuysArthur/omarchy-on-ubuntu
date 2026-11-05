@@ -19,4 +19,5 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libcli11-dev libpipewire-0.3-dev libpam0g-dev libpolkit-agent-1-dev libpolkit-gobject-1-dev \
     libjemalloc-dev libvulkan-dev cargo \
     wayland-protocols liblayershellqtinterface-dev libdeflate-dev \
+    libmpv-dev libavformat-dev libavcodec-dev libavutil-dev libswscale-dev libepoxy-dev libsystemd-dev \
  && rm -rf /var/lib/apt/lists/*

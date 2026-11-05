@@ -82,6 +82,25 @@ install -m755 "$BLD/ttfx/release/ttfx" "$PREFIX/bin/ttfx"
 fetch omasnap https://github.com/omacom/omasnap "$OMASNAP_TAG"
 cmake_build omasnap
 
+# owe, Omarchy's wallpaper engine (video backgrounds, theme intros), and its lock-screen QML module.
+# install.sh places the user unit and the theme-set hook from share/owe.
+fetch owe https://github.com/omacom/owe "$OWE_TAG"
+echo "==> owe"
+[ -d "$BLD/owe" ] || meson setup "$BLD/owe" "$SRC/owe" --prefix=$PREFIX --libdir=lib --buildtype=release
+meson install -C "$BLD/owe" --quiet
+install -Dm755 "$SRC/owe/hooks/owe-idle" "$PREFIX/bin/owe-idle"
+install -Dm644 "$SRC/owe/hooks/theme-set.d/10-owe-sync" "$PREFIX/share/owe/10-owe-sync"
+sed "s|%h/.local/bin/owed|$PREFIX/bin/owed|" "$SRC/owe/systemd/owed.service" > "$PREFIX/share/owe/owed.service"
+echo "==> owe-lockfeed"
+cmake -S "$SRC/owe/qml-plugin" -B "$BLD/owe-lockfeed" -G Ninja -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_INSTALL_LIBDIR=lib -DBUILD_TESTING=OFF
+cmake --build "$BLD/owe-lockfeed" -j"$JOBS"
+cmake --install "$BLD/owe-lockfeed"
+
+# Titlebars for Omarchy's floating workspaces: a Hyprland plugin, so it has to match this exact Hyprland.
+fetch omarchy-hyprland-titlebars https://github.com/omacom/omarchy-hyprland-titlebars "$TITLEBARS_TAG"
+cmake_build omarchy-hyprland-titlebars
+
 # ---- package ----
 VERSION="${HYPRLAND_TAG#v}-${PKG_REVISION}~ubuntu26.04"
 PKG=hyprland-opt
@@ -142,9 +161,12 @@ Recommends: xdg-desktop-portal-hyprland, xdg-desktop-portal-gtk
 Section: x11
 Priority: optional
 Installed-Size: $(du -sk "$STAGE/opt" | cut -f1)
-Description: Hyprland $HYPRLAND_TAG, Quickshell $QUICKSHELL_TAG, ttfx $TTFX_TAG and omasnap $OMASNAP_TAG, self-contained in /opt/hyprland
+Description: Hyprland $HYPRLAND_TAG and Omarchy's programs, self-contained in /opt/hyprland
  Built for Ubuntu 26.04. Adds a "Hyprland (Omarchy)" login session next to GNOME
  and does not touch any files from Ubuntu's own packages.
+ .
+ Includes Quickshell $QUICKSHELL_TAG, ttfx $TTFX_TAG, omasnap $OMASNAP_TAG,
+ owe $OWE_TAG and Omarchy's titlebars plugin $TITLEBARS_TAG.
 EOF
 
 dpkg-deb --root-owner-group -Zzstd --build "$STAGE" "/out/${PKG}_${VERSION}_amd64.deb"

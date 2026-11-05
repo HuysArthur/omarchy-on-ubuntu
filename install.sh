@@ -219,6 +219,22 @@ systemctl --user daemon-reload
 systemctl --user enable --now omarchy-sleep-lock.service
 manage "$C/systemd/user/graphical-session.target.wants/omarchy-sleep-lock.service"
 
+# owe, Omarchy's wallpaper engine (video backgrounds, theme intros), from the Hyprland package. Its daemon
+# draws the desktop background, so like sleep-lock it only starts where OMARCHY_PATH is set (not in GNOME).
+tmp=$(mktemp)
+sed 's|^\[Unit\]$|[Unit]\nConditionEnvironment=OMARCHY_PATH\nConditionEnvironment=WAYLAND_DISPLAY|' \
+  /opt/hyprland/share/owe/owed.service >"$tmp"
+grep -q '^ConditionEnvironment=OMARCHY_PATH$' "$tmp" || die "owed.service has no [Unit] section; update install.sh."
+put "$tmp" "$C/systemd/user/owed.service"
+manage "$C/systemd/user/owed.service"
+rm -f "$tmp"
+systemctl --user daemon-reload
+systemctl --user enable --now owed.service
+manage "$C/systemd/user/graphical-session.target.wants/owed.service"
+# Tells owe to pick up a new theme's background (Omarchy runs `omarchy-hook-install theme-set` with it).
+put /opt/hyprland/share/owe/10-owe-sync "$C/omarchy/hooks/theme-set.d/10-owe-sync"
+manage "$C/omarchy/hooks/theme-set.d/10-owe-sync"
+
 # Start the Hyprland session's settings from a copy of the GNOME ones (fonts, keyboard, app prefs).
 if [[ ! -e $C/dconf/hyprland && -f $C/dconf/user ]]; then
   cp "$C/dconf/user" "$C/dconf/hyprland"
