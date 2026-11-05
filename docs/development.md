@@ -7,9 +7,14 @@ Details for people changing this project. Users only need the [README](../README
 - **Hyprland 0.57.1 + Quickshell 0.3.2** (plus the fixes Omarchy ships, up to `2b4501a`), compiled into a
   self-contained `.deb` under `/opt/hyprland` (no conflicts with Ubuntu's packages), together with Omarchy's own
   programs that Ubuntu doesn't package: `ttfx` (screensaver text effects), `omasnap` (screenshots), `owe` (the
-  wallpaper engine behind video backgrounds and theme intros, plus its lock-screen module) and the titlebars
-  plugin for floating workspaces. Versions are pinned in `build/versions.env`. `install.sh` places owe's user
-  unit (`owed.service`, only started where `OMARCHY_PATH` is set, so not in GNOME) and its theme-set hook.
+  wallpaper engine behind video backgrounds and theme intros, plus its lock-screen module), the titlebars plugin
+  for floating workspaces, and Omarchy's apps (Omacalc, Omawrite, Omacut, Hype, Monologue, Signed, Aether,
+  cliamp, Disktree, Gliff). Versions are pinned in `build/versions.env`; Aether and Disktree are upstream
+  release binaries (checksums pinned), the rest is built from source. The apps' launchers and icons are in
+  `/opt/hyprland/share`, which only the Hyprland session adds to `XDG_DATA_DIRS` (`config/uwsm/env`;
+  `hyprland-session` puts the user manager's value back when the session ends), so they don't show up in GNOME.
+  `install.sh` places owe's user unit (`owed.service`, only started where `OMARCHY_PATH` is set, so not in
+  GNOME) and its theme-set hook.
 - **Omarchy 4.5.0**, a pinned checkout in `~/.local/share/omarchy`: its keybindings, look, window rules,
   themes and Quickshell shell (bar, menus, notifications, OSD, lock screen) run unmodified.
 - **Ubuntu layer** (`~/.local/share/omarchy-ubuntu`): a read-only `pacman` stand-in backed by dpkg,
@@ -17,7 +22,14 @@ Details for people changing this project. Users only need the [README](../README
   Install > Browser installs from the vendors' Ubuntu sources or Flathub, and `layer/lib/pkg-names.sh` maps
   those browsers' Arch package names to what Ubuntu installs), an `awk` -> `gawk` wrapper (Omarchy's scripts need GNU awk;
   the system-wide awk stays mawk), and stubs for Arch-only commands (limine, plymouth, AUR, snapshots,
-  factory reset, kernel switching, pacman repositories).
+  factory reset, kernel switching, pacman repositories). Remove > Preinstalls and Install > Preinstalls have
+  layer versions: upstream uninstalls the preinstalled packages (some shared with GNOME, Omarchy's own are
+  part of the Hyprland package), so these hide and show the bundled apps' launchers (`Hidden=true` copies in
+  `~/.local/share/applications`, for apps GNOME doesn't have) and set the state file that turns their
+  shortcuts off. Superwhisper (dictation, proprietary) is installed from its vendor on demand by
+  `layer/libexec/superwhisper`, mapped from `superwhisper-bin` in `layer/lib/pkg-names.sh`: Arch's package
+  layout with `/usr/local` for `/usr`, the daemon and launcher limited to the Hyprland session, version and
+  checksum pinned, refreshed by `install.sh` when the pin changes.
 - **Keyboard**: the layout goes to `~/.config/omarchy/keyboard-layouts` (taken from `/etc/default/keyboard`),
   where Omarchy reads it and Setup > Typing > Keyboard Layouts writes it. Omarchy's own XKB option
   `omarchy:shift_caps_compose` (Caps Lock stays Caps Lock, Shift + Caps Lock is Compose) lives in `/etc/xkb` on
@@ -31,18 +43,19 @@ Details for people changing this project. Users only need the [README](../README
   and `opencode`), and `h` for `herdr`. A line `install.sh` keeps in `~/.bashrc`/`~/.zshrc` (marked
   `# omarchy-ubuntu`) loads `layer/shell/herdr.sh`, which only does something when `OMARCHY_PATH` is set.
   To take Omarchy's config over your own: `omarchy-refresh-herdr` (keeps yours as `config.toml.bak.<time>`).
-  Omarchy binds Super+Ctrl+Return among its preinstalled-app bindings, which `config/hypr/hyprland.lua`
-  turns off, so `layer/lua/hypr.lua` binds it again.
+  Super+Ctrl+Return is one of Omarchy's preinstalled-app bindings, so Remove > Preinstalls turns it off too,
+  as upstream.
 - **Screensaver inhibit bridge** (`omarchy-idle-inhibit-bridge`): answers apps that ask over DBus to keep the
   screen awake (browsers during video calls, video players) by holding a Wayland idle inhibitor, the only kind
   Omarchy's shell honours.
 - **Patches** (`patches/`), applied to the Omarchy checkout by `install.sh`: variables named `native` in the
   background services that Ubuntu's Qt 6.10 QML parser rejects (it reserves Java's keywords), the Update >
   Channel menu, the app launcher's uninstall action (apt and snap instead of pacman), Remove menu entries that
-  would take packages away from GNOME or turn off its services (Fingerprint, Preinstalls, SSH Agent), the
+  would take packages away from GNOME or turn off its services (Fingerprint, SSH Agent), the
   browser installer (it skips Omarchy's browser policies under `/etc` and `~/.config/environment.d`, which GNOME
   would pick up too), menu entries hidden because they need Arch, and the Ubuntu names of browsers in
-  `omarchy-default-browser` (which installs a browser it doesn't find) and `omarchy-remove-browser`.
+  `omarchy-default-browser` (which installs a browser it doesn't find) and `omarchy-remove-browser`, the
+  titlebars plugin's path under `/opt/hyprland`, and Superwhisper's paths under `/usr/local`.
 
 ## How GNOME is kept separate
 

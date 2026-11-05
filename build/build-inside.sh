@@ -134,6 +134,44 @@ for bin in gliff gliff-server gliff-probe; do install -m755 "$BLD/gliff/release/
 install -Dm644 "$SRC/gliff/pkgbuild/gliff.desktop" "$APPS/gliff.desktop"
 install -Dm644 "$SRC/gliff/pkgbuild/gliff.svg" "$ICONS/scalable/apps/gliff.svg"
 
+# Omarchy's Qt apps (calculator, writer, video cutter, presentations, webcam recorder, PDF signing) all build
+# the same way: qmake6, with a launcher and icon in pkgbuild/.
+qt_app() {
+  local name=$1 url=$2 rev=$3
+  fetch "$name" "$url" "$rev"
+  echo "==> $name"
+  mkdir -p "$BLD/$name"
+  (cd "$BLD/$name" && qmake6 "$SRC/$name/$name.pro" && make -j"$JOBS")
+  install -m755 "$BLD/$name/$name" "$PREFIX/bin/$name"
+  install -Dm644 "$SRC/$name/pkgbuild/$name.desktop" "$APPS/$name.desktop"
+  install -Dm644 "$SRC/$name/pkgbuild/$name.svg" "$ICONS/scalable/apps/$name.svg"
+}
+qt_app omacalc   https://github.com/omacom-io/omacalc "$OMACALC_TAG"
+qt_app omawrite  https://github.com/omacom/omawrite   "$OMAWRITE_TAG"
+qt_app omacut    https://github.com/omacom/omacut     "$OMACUT_TAG"
+qt_app hype      https://github.com/omacom/hype       "$HYPE_TAG"
+qt_app monologue https://github.com/omacom/monologue  "$MONOLOGUE_TAG"
+qt_app signed    https://github.com/omacom/signed     "$SIGNED_TAG"
+
+# Aether, Omarchy's theme designer: a Wails (Go + web) app, so the upstream release binary; launchers and
+# icon from the tagged source.
+fetch aether https://github.com/omacom/aether "$AETHER_TAG"
+echo "==> aether"
+download "https://github.com/omacom/aether/releases/download/$AETHER_TAG/aether-linux-amd64" "$AETHER_SHA256" "$SRC/aether-linux-amd64-$AETHER_TAG"
+install -m755 "$SRC/aether-linux-amd64-$AETHER_TAG" "$PREFIX/bin/aether"
+install -Dm644 "$SRC/aether/build/linux/aether.desktop" "$APPS/aether.desktop"
+install -Dm644 "$SRC/aether/li.oever.aether.url-handler.desktop" "$APPS/li.oever.aether.url-handler.desktop"
+install -Dm644 "$SRC/aether/assets/aether-icon-512.png" "$ICONS/512x512/apps/aether.png"
+
+# cliamp, the terminal music player (Super+Shift+Alt+M).
+fetch cliamp https://github.com/bjarneo/cliamp "$CLIAMP_TAG"
+echo "==> cliamp"
+(cd "$SRC/cliamp" && GOTOOLCHAIN=auto GOPATH=/work/go GOCACHE=/work/go-cache CGO_ENABLED=1 \
+  go build -trimpath -buildmode=pie -ldflags="-s -w -X main.version=$CLIAMP_TAG -linkmode=external" -o "$BLD/cliamp/cliamp" .)
+install -m755 "$BLD/cliamp/cliamp" "$PREFIX/bin/cliamp"
+install -Dm644 "$SRC/cliamp/cliamp.desktop" "$APPS/cliamp.desktop"
+install -Dm644 "$SRC/cliamp/Cliamp.png" "$ICONS/512x512/apps/cliamp.png"
+
 # ---- package ----
 VERSION="${HYPRLAND_TAG#v}-${PKG_REVISION}~ubuntu26.04"
 PKG=hyprland-opt
@@ -197,8 +235,10 @@ Maintainer: Arthur Huys <arthur.huys@gmail.com>
 Depends: $SHLIBS, xwayland, uwsm, qt6-wayland, qt6-svg-plugins, qt6-image-formats-plugins, layer-shell-qt,
  qml6-module-qtquick, qml6-module-qtquick-controls, qml6-module-qtquick-layouts,
  qml6-module-qtquick-shapes, qml6-module-qtquick-effects, qml6-module-qtquick-window,
- qml6-module-qtqml-models, qml6-module-qtqml-workerscript, libvulkan1
-Recommends: xdg-desktop-portal-hyprland, xdg-desktop-portal-gtk
+ qml6-module-qtqml-models, qml6-module-qtqml-workerscript,
+ qml6-module-qtqml, qml6-module-qtquick-templates, qml6-module-qtquick-dialogs, qml6-module-qtmultimedia,
+ ffmpeg, source-highlight, libvulkan1
+Recommends: xdg-desktop-portal-hyprland, xdg-desktop-portal-gtk, yt-dlp
 Section: x11
 Priority: optional
 Installed-Size: $(du -sk "$STAGE/opt" | cut -f1)
@@ -207,7 +247,8 @@ Description: Hyprland $HYPRLAND_TAG and Omarchy's programs, self-contained in /o
  and does not touch any files from Ubuntu's own packages.
  .
  Includes Quickshell ${QUICKSHELL_REV:0:7}, ttfx $TTFX_TAG, omasnap $OMASNAP_TAG,
- owe $OWE_TAG and Omarchy's titlebars plugin $TITLEBARS_TAG, Disktree and Gliff.
+ owe $OWE_TAG and Omarchy's titlebars plugin $TITLEBARS_TAG, and Omarchy's apps:
+ Disktree, Gliff, Omacalc, Omawrite, Omacut, Hype, Monologue, Signed, Aether and cliamp.
 EOF
 
 dpkg-deb --root-owner-group -Zzstd --build "$STAGE" "/out/${PKG}_${VERSION}_amd64.deb"
