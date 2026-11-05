@@ -98,8 +98,9 @@ cmake --build "$BLD/owe-lockfeed" -j"$JOBS"
 cmake --install "$BLD/owe-lockfeed"
 
 # Titlebars for Omarchy's floating workspaces: a Hyprland plugin, so it has to match this exact Hyprland.
+# Hyprland's headers include lua.h, which hyprland.pc doesn't point at (Ubuntu keeps it in /usr/include/lua5.5).
 fetch omarchy-hyprland-titlebars https://github.com/omacom/omarchy-hyprland-titlebars "$TITLEBARS_TAG"
-cmake_build omarchy-hyprland-titlebars
+cmake_build omarchy-hyprland-titlebars -DCMAKE_CXX_FLAGS="$(pkg-config --cflags lua55)"
 
 # ---- package ----
 VERSION="${HYPRLAND_TAG#v}-${PKG_REVISION}~ubuntu26.04"
