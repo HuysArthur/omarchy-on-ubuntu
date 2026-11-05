@@ -1,0 +1,15 @@
+#!/bin/bash
+# omarchy:summary=Copy a shipped user config from $OMARCHY_PATH/config into ~/.config (backs up your version).
+# omarchy:args=<config-path>
+# Ubuntu: ~/.config/hypr/hyprland.lua and ~/.config/uwsm/env are omarchy-ubuntu's own. They load the Ubuntu layer
+# (PATH, the pacman stand-in, a GNOME settings database of its own), and Omarchy's hyprland.lua would start the
+# session without it. Those two come from omarchy-ubuntu's copy (install.sh puts it in the layer), and so do
+# omarchy/keyboard-layouts, hypr/input.lua and hypr/monitors.lua, which it generates for this machine (keyboard
+# layout and options, display scale). Every other file is Omarchy's, through Omarchy's own command.
+case ${1:-} in
+hypr/hyprland.lua | hypr/input.lua | hypr/monitors.lua | omarchy/keyboard-layouts | uwsm/env)
+  # Omarchy's command reads the default from $OMARCHY_PATH/config/<path>; point it at the layer's copy.
+  exec env OMARCHY_PATH="$HOME/.local/share/omarchy-ubuntu" "$OMARCHY_PATH/bin/omarchy-refresh-config" "$@"
+  ;;
+esac
+exec "$OMARCHY_PATH/bin/omarchy-refresh-config" "$@"

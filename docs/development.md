@@ -51,11 +51,33 @@ Details for people changing this project. Users only need the [README](../README
 - **Patches** (`patches/`), applied to the Omarchy checkout by `install.sh`: variables named `native` in the
   background services that Ubuntu's Qt 6.10 QML parser rejects (it reserves Java's keywords), the Update >
   Channel menu, the app launcher's uninstall action (apt and snap instead of pacman), Remove menu entries that
-  would take packages away from GNOME or turn off its services (Fingerprint, SSH Agent), the
-  browser installer (it skips Omarchy's browser policies under `/etc` and `~/.config/environment.d`, which GNOME
-  would pick up too), menu entries hidden because they need Arch, and the Ubuntu names of browsers in
-  `omarchy-default-browser` (which installs a browser it doesn't find) and `omarchy-remove-browser`, the
-  titlebars plugin's path under `/opt/hyprland`, and Superwhisper's paths under `/usr/local`.
+  would take packages away from GNOME or turn off its services (Fingerprint, SSH Agent), the browser installer
+  (it skips Omarchy's browser policies under `/etc` and `~/.config/environment.d`, which GNOME would pick up
+  too), menu entries hidden because they need Arch, the Ubuntu names of browsers in `omarchy-default-browser`
+  (which installs a browser it doesn't find) and `omarchy-remove-browser`, the titlebars plugin's path under
+  `/opt/hyprland`, Superwhisper's paths under `/usr/local`, a note at the top of Omarchy's agent skills that
+  sends agents to the Ubuntu skill, and `omarchy <command>` looking commands up on PATH, so it reaches the
+  layer's versions (upstream it only runs the ones next to it).
+- **Agent skills**: Omarchy's skills (`omarchy` for changing the desktop, `omarchy-app` for building apps,
+  `diagnose-crash`) and the layer's `omarchy-ubuntu` skill (`layer/agents/skills/`) are linked into
+  `~/.agents/skills`, `~/.claude/skills`, `~/.codex/skills`, `~/.pi/agent/skills` and `~/.gemini/config/skills`,
+  as Omarchy's `omarchy-provision-user` does; into `~/.hermes/skills` and its profiles only if you have
+  `~/.hermes`. A skill of yours with the same name is left alone. The Ubuntu skill tells agents what differs
+  here: apt instead of pacman, `$OMARCHY_PATH` instead of `/usr/share/omarchy`, which files `install.sh`
+  overwrites, what GNOME shares, how to tell the sessions apart, what's Arch-only, and where to report bugs.
+  Those folders are shared with GNOME, so agents see the skills there too. When changing how the port works,
+  update that skill.
+- **Resetting configs**: `omarchy-reinstall-configs` (`omarchy reinstall configs`; the `omarchy-ubuntu` skill
+  has agents ask before using it, and try `omarchy refresh` first) places `layer/lib/configs.sh`'s files with
+  `RESET_CONFIGS=1`, without `install.sh`, so it needs no sudo, network or checkout. That makes `put
+  --if-missing` replace your file. `put --keep` files, the apps GNOME shares (ghostty, btop, imv, lazygit,
+  herdr), are never replaced. Your edited versions of files we seeded go to
+  `~/.local/state/omarchy-ubuntu/reset-backup/`, not `backup/`, which `uninstall.sh` restores as what was there
+  before the install; `uninstall.sh` moves `reset-backup/` aside. `omarchy-refresh-config` (also behind **Update
+  > Config > Hyprland**) restores `hypr/hyprland.lua`, `uwsm/env` and the generated `omarchy/keyboard-layouts`,
+  `hypr/input.lua` and `hypr/monitors.lua` from the layer's `config/`, since Omarchy's own would start the
+  session without the layer or lose this machine's keyboard layout and scale; other files go to Omarchy's
+  command. `omarchy reinstall pkgs` is a stub (it would run pacman).
 
 ## How GNOME is kept separate
 

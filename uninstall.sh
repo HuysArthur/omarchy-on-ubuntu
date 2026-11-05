@@ -34,6 +34,8 @@ if [[ -f $MANIFEST ]]; then
     rel=${path#"$HOME"/}
     mkdir -p "$ASIDE/$(dirname "$rel")"
     mv "$path" "$ASIDE/$rel"
+    # Folders made just for a skill link (agents you don't have) go with it.
+    [[ $path != */skills/* ]] || (cd "$HOME" && rmdir -p --ignore-fail-on-non-empty "$(dirname "$rel")")
   done <"$MANIFEST"
 
   # Restore the oldest backup of each file, i.e. what was there before the first install.
@@ -59,6 +61,12 @@ for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do
   cat "$tmp" >"$rc"
   rm -f "$tmp"
 done
+
+# Your versions from omarchy-reinstall-configs: not what was there before the install, so kept with the rest.
+if [[ -d $STATE/reset-backup ]]; then
+  mkdir -p "$ASIDE"
+  mv "$STATE/reset-backup" "$ASIDE/"
+fi
 
 # Launchers Remove > Preinstalls wrote to hide Omarchy's apps (layer/bin/omarchy-remove-preinstalls).
 for f in "$HOME"/.local/share/applications/*.desktop; do

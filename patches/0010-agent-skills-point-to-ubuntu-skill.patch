@@ -1,0 +1,45 @@
+diff --git a/default/agents/skills/diagnose-crash/SKILL.md b/default/agents/skills/diagnose-crash/SKILL.md
+index ea77300..bac469b 100644
+--- a/default/agents/skills/diagnose-crash/SKILL.md
++++ b/default/agents/skills/diagnose-crash/SKILL.md
+@@ -11,6 +11,10 @@ description: >
+ 
+ # Diagnosing a Crash
+ 
++> **Omarchy on Ubuntu:** this machine runs Omarchy on Ubuntu, next to GNOME, not on Arch. Read the
++> `omarchy-ubuntu` skill (`~/.local/share/omarchy-ubuntu/agents/skills/omarchy-ubuntu/SKILL.md`) first;
++> where it differs from this one, it is right for this machine.
++
+ Work from evidence. The goal is an honest account of what happened, not a
+ plausible-sounding story.
+ 
+diff --git a/default/agents/skills/omarchy-app/SKILL.md b/default/agents/skills/omarchy-app/SKILL.md
+index 922255f..8b33adf 100644
+--- a/default/agents/skills/omarchy-app/SKILL.md
++++ b/default/agents/skills/omarchy-app/SKILL.md
+@@ -12,6 +12,10 @@ description: >
+ 
+ # Building an Omarchy App
+ 
++> **Omarchy on Ubuntu:** this machine runs Omarchy on Ubuntu, next to GNOME, not on Arch. Read the
++> `omarchy-ubuntu` skill (`~/.local/share/omarchy-ubuntu/agents/skills/omarchy-ubuntu/SKILL.md`) first;
++> where it differs from this one, it is right for this machine.
++
+ Omarchy's own apps are dead simple on purpose: one window, one job, driven
+ from the keyboard, following the desktop theme, and installed like any other
+ package. Build new ones the same way. `templates.md` has the starter files;
+diff --git a/default/agents/skills/omarchy/SKILL.md b/default/agents/skills/omarchy/SKILL.md
+index eb3cca8..6e8e7c8 100644
+--- a/default/agents/skills/omarchy/SKILL.md
++++ b/default/agents/skills/omarchy/SKILL.md
+@@ -13,6 +13,10 @@ description: >
+ 
+ # Omarchy Skill
+ 
++> **Omarchy on Ubuntu:** this machine runs Omarchy on Ubuntu, next to GNOME, not on Arch. Read the
++> `omarchy-ubuntu` skill (`~/.local/share/omarchy-ubuntu/agents/skills/omarchy-ubuntu/SKILL.md`) first;
++> where it differs from this one, it is right for this machine.
++
+ Manage [Omarchy](https://omarchy.org/) Linux systems - a beautiful, fun, agentic Arch Linux distribution with Hyprland.
+ 
+ This skill is for end-user customization on installed systems.
