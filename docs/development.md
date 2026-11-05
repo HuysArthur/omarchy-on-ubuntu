@@ -5,15 +5,21 @@ Details for people changing this project. Users only need the [README](../README
 ## What gets installed
 
 - **Hyprland 0.56.2 + Quickshell 0.3.2**, compiled into a self-contained `.deb` under `/opt/hyprland`
-  (no conflicts with Ubuntu's packages), together with `ttfx` 0.5.1 for Omarchy's screensaver.
-- **Omarchy 4.0.6**, a pinned checkout in `~/.local/share/omarchy`: its keybindings, look, window rules,
+  (no conflicts with Ubuntu's packages), together with `ttfx` 0.5.1 for Omarchy's screensaver and `omasnap`
+  1.25.0, Omarchy's screenshot tool.
+- **Omarchy 4.5.0**, a pinned checkout in `~/.local/share/omarchy`: its keybindings, look, window rules,
   themes and Quickshell shell (bar, menus, notifications, OSD, lock screen) run unmodified.
 - **Ubuntu layer** (`~/.local/share/omarchy-ubuntu`): a read-only `pacman` stand-in backed by dpkg,
   apt-based `omarchy-update` and package commands (Install > Package and Remove > Package pick from apt;
   Install > Browser installs from the vendors' Ubuntu sources or Flathub, and `layer/lib/pkg-names.sh` maps
   those browsers' Arch package names to what Ubuntu installs), an `awk` -> `gawk` wrapper (Omarchy's scripts need GNU awk;
   the system-wide awk stays mawk), and stubs for Arch-only commands (limine, plymouth, AUR, snapshots,
-  factory reset).
+  factory reset, kernel switching, pacman repositories).
+- **Keyboard**: the layout goes to `~/.config/omarchy/keyboard-layouts` (taken from `/etc/default/keyboard`),
+  where Omarchy reads it and Setup > Typing > Keyboard Layouts writes it. Omarchy's own XKB option
+  `omarchy:shift_caps_compose` (Caps Lock stays Caps Lock, Shift + Caps Lock is Compose) lives in `/etc/xkb` on
+  Arch; here it goes to `~/.config/xkb`, which libxkbcommon also reads. Its rules file includes the system's
+  rules and only adds that option, so every other keymap (GNOME's too) compiles exactly as before.
 - **Herdr** (Omarchy's terminal workspace manager): the static release binary goes to `~/.local/bin/herdr`
   (pinned in `install.sh`, self-updates with `herdr update`) unless you already have one, plus Omarchy's
   tmux-style config if you have none. If the download fails, the install carries on without it.
@@ -27,12 +33,13 @@ Details for people changing this project. Users only need the [README](../README
 - **Screensaver inhibit bridge** (`omarchy-idle-inhibit-bridge`): answers apps that ask over DBus to keep the
   screen awake (browsers during video calls, video players) by holding a Wayland idle inhibitor, the only kind
   Omarchy's shell honours.
-- **Patches** (`patches/`), applied to the Omarchy checkout by `install.sh`: a variable named `transient`
-  in the notifications service that Ubuntu's Qt 6.10 QML parser rejects, the Update > Channel menu,
-  the app launcher's uninstall action (apt and snap instead of pacman), Remove menu entries that would
-  take packages away from GNOME (Fingerprint, Preinstalls), the browser installer (it skips Omarchy's browser
-  policies under `/etc` and `~/.config/environment.d`, which GNOME would pick up too), menu entries hidden
-  because they need Arch, and the Ubuntu names of browsers in the menu and `omarchy-default-browser`.
+- **Patches** (`patches/`), applied to the Omarchy checkout by `install.sh`: variables named `native` in the
+  background services that Ubuntu's Qt 6.10 QML parser rejects (it reserves Java's keywords), the Update >
+  Channel menu, the app launcher's uninstall action (apt and snap instead of pacman), Remove menu entries that
+  would take packages away from GNOME or turn off its services (Fingerprint, Preinstalls, SSH Agent), the
+  browser installer (it skips Omarchy's browser policies under `/etc` and `~/.config/environment.d`, which GNOME
+  would pick up too), menu entries hidden because they need Arch, and the Ubuntu names of browsers in
+  `omarchy-default-browser` (which installs a browser it doesn't find) and `omarchy-remove-browser`.
 
 ## How GNOME is kept separate
 

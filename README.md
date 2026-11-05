@@ -51,9 +51,11 @@ replaced is restored.
 ## What doesn't work
 
 Some Omarchy features depend on Arch Linux: pacman/AUR updates (apt is used instead),
-bootloader/plymouth/hibernation setup, snapper snapshots and factory reset. Their menu entries are hidden:
-Install > AUR, Install > Editor > Emacs, Install > AI > Hermes Desktop and OpenClaw (and both under Setup >
-Default agent), Style > Unlock and Update > Config > Plymouth.
+bootloader/plymouth/hibernation setup, kernel switching, snapper snapshots and factory reset. Their menu
+entries are hidden: Install > AUR, Install > Editor > Emacs, Install > AI > Hermes Desktop, OpenClaw, Claude
+Desktop and Amp Desktop (Hermes and OpenClaw under Setup > Default agent too), Install > Service > Notion and
+Slack, Setup > Defaults > Dictation, Setup > Language, Setup > Typing > Input Methods, Appearance > Unlock,
+Update > Kernel and Update > Config > Plymouth.
 
 Install > Browser gets Chrome and Edge from their vendors' `.deb`, Brave from Brave's apt repository and Zen
 from Flathub, so they stay up to date with the rest of your system.
@@ -69,5 +71,5 @@ see [docs/development.md](docs/development.md).
 ## License
 
 MIT (see `LICENSE`). The Hyprland package bundles Hyprland and its libraries (BSD-3-Clause),
-Quickshell (LGPL-3.0) and ttfx (MIT), built unmodified from the sources pinned in `build/versions.env`.
+Quickshell (LGPL-3.0), ttfx (MIT) and omasnap (MIT), built unmodified from the sources pinned in `build/versions.env`.
 Omarchy (MIT) is downloaded by `install.sh`, not included here.
