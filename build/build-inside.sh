@@ -78,6 +78,10 @@ echo "==> ttfx"
 CARGO_HOME=/work/cargo cargo build --locked --release --manifest-path "$SRC/ttfx/Cargo.toml" --target-dir "$BLD/ttfx"
 install -m755 "$BLD/ttfx/release/ttfx" "$PREFIX/bin/ttfx"
 
+# Omarchy's screenshot tool (omarchy-capture-screenshot runs it since Omarchy 4.5); not in Ubuntu's archive.
+fetch omasnap https://github.com/omacom/omasnap "$OMASNAP_TAG"
+cmake_build omasnap
+
 # ---- package ----
 VERSION="${HYPRLAND_TAG#v}-${PKG_REVISION}~ubuntu26.04"
 PKG=hyprland-opt
@@ -130,7 +134,7 @@ Package: $PKG
 Version: $VERSION
 Architecture: amd64
 Maintainer: Arthur Huys <arthur.huys@gmail.com>
-Depends: $SHLIBS, xwayland, uwsm, qt6-wayland, qt6-svg-plugins, qt6-image-formats-plugins,
+Depends: $SHLIBS, xwayland, uwsm, qt6-wayland, qt6-svg-plugins, qt6-image-formats-plugins, layer-shell-qt,
  qml6-module-qtquick, qml6-module-qtquick-controls, qml6-module-qtquick-layouts,
  qml6-module-qtquick-shapes, qml6-module-qtquick-effects, qml6-module-qtquick-window,
  qml6-module-qtqml-models, qml6-module-qtqml-workerscript
@@ -138,7 +142,7 @@ Recommends: xdg-desktop-portal-hyprland, xdg-desktop-portal-gtk
 Section: x11
 Priority: optional
 Installed-Size: $(du -sk "$STAGE/opt" | cut -f1)
-Description: Hyprland $HYPRLAND_TAG, Quickshell $QUICKSHELL_TAG and ttfx $TTFX_TAG, self-contained in /opt/hyprland
+Description: Hyprland $HYPRLAND_TAG, Quickshell $QUICKSHELL_TAG, ttfx $TTFX_TAG and omasnap $OMASNAP_TAG, self-contained in /opt/hyprland
  Built for Ubuntu 26.04. Adds a "Hyprland (Omarchy)" login session next to GNOME
  and does not touch any files from Ubuntu's own packages.
 EOF
