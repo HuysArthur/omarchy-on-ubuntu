@@ -4,12 +4,12 @@ Details for people changing this project. Users only need the [README](../README
 
 ## What gets installed
 
-- **Hyprland 0.56.2 + Quickshell 0.3.2**, compiled into a self-contained `.deb` under `/opt/hyprland`
-  (no conflicts with Ubuntu's packages), together with Omarchy's own programs that Ubuntu doesn't package:
-  `ttfx` (screensaver text effects), `omasnap` (screenshots), `owe` (the wallpaper engine behind video
-  backgrounds and theme intros, plus its lock-screen module) and the titlebars plugin for floating workspaces.
-  Versions are pinned in `build/versions.env`. `install.sh` places owe's user unit (`owed.service`, only
-  started where `OMARCHY_PATH` is set, so not in GNOME) and its theme-set hook.
+- **Hyprland 0.57.1 + Quickshell 0.3.2** (plus the fixes Omarchy ships, up to `2b4501a`), compiled into a
+  self-contained `.deb` under `/opt/hyprland` (no conflicts with Ubuntu's packages), together with Omarchy's own
+  programs that Ubuntu doesn't package: `ttfx` (screensaver text effects), `omasnap` (screenshots), `owe` (the
+  wallpaper engine behind video backgrounds and theme intros, plus its lock-screen module) and the titlebars
+  plugin for floating workspaces. Versions are pinned in `build/versions.env`. `install.sh` places owe's user
+  unit (`owed.service`, only started where `OMARCHY_PATH` is set, so not in GNOME) and its theme-set hook.
 - **Omarchy 4.5.0**, a pinned checkout in `~/.local/share/omarchy`: its keybindings, look, window rules,
   themes and Quickshell shell (bar, menus, notifications, OSD, lock screen) run unmodified.
 - **Ubuntu layer** (`~/.local/share/omarchy-ubuntu`): a read-only `pacman` stand-in backed by dpkg,

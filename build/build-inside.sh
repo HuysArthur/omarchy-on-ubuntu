@@ -70,7 +70,7 @@ fetch hyprland-protocols  "$GH/hyprland-protocols"  "$HYPRLAND_PROTOCOLS_REV";  
 fetch Hyprland "$GH/Hyprland" "$HYPRLAND_TAG"
 cmake_build Hyprland -DNO_HYPRPM=ON -DNO_UWSM=ON
 
-fetch quickshell https://git.outfoxxed.me/quickshell/quickshell "$QUICKSHELL_TAG"
+fetch quickshell https://git.outfoxxed.me/quickshell/quickshell "$QUICKSHELL_REV"
 cmake_build quickshell -DDISTRIBUTOR="omarchy-ubuntu" -DCRASH_HANDLER=OFF -DINSTALL_QML_PREFIX=lib/qt6/qml
 
 fetch ttfx https://github.com/omacom/ttfx "$TTFX_TAG"
@@ -166,7 +166,7 @@ Description: Hyprland $HYPRLAND_TAG and Omarchy's programs, self-contained in /o
  Built for Ubuntu 26.04. Adds a "Hyprland (Omarchy)" login session next to GNOME
  and does not touch any files from Ubuntu's own packages.
  .
- Includes Quickshell $QUICKSHELL_TAG, ttfx $TTFX_TAG, omasnap $OMASNAP_TAG,
+ Includes Quickshell ${QUICKSHELL_REV:0:7}, ttfx $TTFX_TAG, omasnap $OMASNAP_TAG,
  owe $OWE_TAG and Omarchy's titlebars plugin $TITLEBARS_TAG.
 EOF
 
