@@ -21,5 +21,7 @@ for launcher in "${PREINSTALL_LAUNCHERS[@]}"; do
     "$PREINSTALL_MARKER" "${launcher%.desktop}" >"$PREINSTALL_APPS_DIR/$launcher"
 done
 touch "$PREINSTALLS_REMOVED"
+# Omarchy's coding agents and tools from mise, as upstream (their shims go; what mise installed stays).
+command -v mise >/dev/null && omarchy-mise-default-tools disable
 omarchy-restart-hyprctl
 echo "Preinstalled apps hidden. Bring them back with Install > Preinstalls."

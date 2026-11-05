@@ -47,34 +47,35 @@ Details for people changing this project. Users only need the [README](../README
   Super+Ctrl+Return is one of Omarchy's preinstalled-app bindings, so Remove > Preinstalls turns it off too,
   as upstream.
 - **Coding agents**: mise from its PPA (`ppa:jdxcode/mise`; it isn't in Ubuntu's archive), unless you already
-  have a `mise`, and Omarchy's agent launchers in `~/.local/bin` (`claude`, `codex`, `opencode`, `gemini`,
-  `copilot`, `crush`, `grok`, `pi`, `omp`, `cursor-agent`, `muse`, plus `gh`, `playwright`, `ghui` and
-  `hunk`): small scripts that install their tool with `mise use -g` on first run. `layer/lib/mise-launchers.sh`
-  runs Omarchy's own list (`install/user/mise.sh`, which also sets mise's `upgrade.auto_prune false`) and skips
-  any command you already have elsewhere on PATH or at that path (Claude Code's installer links
-  `~/.local/bin/claude`). mise's npm backend needs a `node` on PATH, hence `nodejs` in `install.sh`'s `PACKAGES`
-  (`npm` isn't needed). `@kitlangton/ghui` still fails on first run: mise refuses packages with few weekly
-  downloads. `install.sh` keeps a launcher managed for as long as it's still Omarchy's, because that list only
-  reaches some of them while they're missing. Omarchy's Cursor options go in `~/.config/mise/conf.d/omarchy.toml` (upstream:
-  `/etc/mise/conf.d`). That makes **Setup > Defaults > Agent**, `omarchy agent`, `omarchy agent prompt` and
-  Super+Shift+Ctrl+A work. `omarchy-update` runs Omarchy's `omarchy-update-mise`, which is a plain `mise up`:
-  it upgrades your own global mise tools too. The shell line also loads Omarchy's `a`, `c`, `cx`, `cy` and `mup`
-  aliases (`layer/shell/agents.sh`), except names you already use. Like herdr, this is an
-  extra: if mise can't be installed, the install carries on without it. `uninstall.sh` removes the launchers
-  but leaves mise and what it downloaded (`~/.local/share/mise`, `~/.config/mise/config.toml`, where
-  `upgrade.auto_prune false` also stays).
-  When an agent's own installer later replaces a launcher (Claude Code's and Cursor's write the same path),
-  the next `install.sh` stops tracking that path (`forget`, using the list in
-  `~/.local/state/omarchy-ubuntu/agent-launchers`), so neither the cleanup of a run nor `uninstall.sh` removes
-  your install.
-- **herdr integration for agents**: `omarchy-ubuntu-herdr-integrations` runs `herdr integration install` for each
-  of Omarchy's agents whose config folder exists (it has been run once), however it was installed. Omarchy 4.5
-  only does this from a mise postinstall hook, so a self-installed Claude Code would miss it. `install.sh` and
-  `omarchy-update` run it; an integration you installed yourself is left alone; the ones it installed are
-  listed in `~/.local/state/omarchy-ubuntu/herdr-integrations`, kept current, and removed by `uninstall.sh`
-  (not by switching channels). One you remove with `herdr integration uninstall` stays on that list, which is
-  what keeps it from coming back; agents' config files aren't backed up first. The hooks only act inside herdr, so they're harmless in GNOME, which shares
-  `~/.claude` and the other agent folders.
+  have a `mise`; `install.sh` warns when it's older than 2026.11.1, the first release with everything Omarchy
+  4.5 uses. Omarchy 4.5 declares its agents (`claude`, `codex`, `opencode`, `gemini`, `copilot`, `grok`, `pi`,
+  `cursor-agent` and the rest) and tools like `gh`, `hunk`, `playwright` and `node` as lazy mise tools in
+  `etc/mise/conf.d/omarchy-tools.toml`: mise keeps a shim for each in `~/.local/share/mise/shims` and installs
+  the tool on its first run, updating agents every four hours. `omarchy-agent-accounts.toml` adds command
+  wrappers (`~/.local/share/mise/command-wrappers/bin`) that run `claude`, `codex` and `grok` under the selected
+  agent account. On Arch that's `/etc/mise/conf.d`; here `config/uwsm/env` sets `MISE_SYSTEM_CONFIG_DIR` to
+  `$OMARCHY_PATH/etc/mise` and puts the wrappers first and the shims after the system's on PATH, all in the
+  Hyprland session only, so `/etc/mise` and mise in GNOME are untouched (mise trusts its system config, so
+  there's no trust prompt). `install.sh` creates the shims as Omarchy's `install/user/mise.sh` does (`mise
+  reshim --system`, then `mise reshim`). An agent you installed yourself in `~/.local/bin` (Claude Code's native
+  installer, say) comes first on PATH, where Ubuntu's `~/.profile` puts that folder. That makes **Setup >
+  Defaults > Agent**, `omarchy agent`, `omarchy agent prompt` and Super+Shift+Ctrl+A work. `omarchy-update` runs
+  Omarchy's `omarchy-update-mise`, which is a plain `mise up`: it upgrades your own global mise tools too.
+  Remove > Preinstalls and Install > Preinstalls also turn Omarchy's mise tools off and on
+  (`omarchy-mise-default-tools`), as upstream. The shell line also loads Omarchy's `a`, `c`, `cx`, `cy` and
+  `mup` aliases (`layer/shell/agents.sh`), except names you already use. Like herdr, this is an extra: if mise
+  can't be installed, the install carries on without it. `uninstall.sh` leaves mise and what it downloaded
+  (`~/.local/share/mise`). Before 4.5 this put a launcher per agent in `~/.local/bin`; on a machine that still
+  has them (listed in `~/.local/state/omarchy-ubuntu/agent-launchers`), the next run removes the ones that are
+  still Omarchy's and leaves one an agent's installer has since replaced (`layer/lib/launchers.sh`).
+- **herdr integration for agents**: `omarchy-ubuntu-herdr-integrations` runs `herdr integration install` for
+  each of Omarchy's agents whose config folder exists (it has been run once), however it was installed; Omarchy
+  doesn't set this up itself. `install.sh` and `omarchy-update` run it; an integration you installed yourself is
+  left alone; the ones it installed are listed in `~/.local/state/omarchy-ubuntu/herdr-integrations`, kept
+  current, and removed by `uninstall.sh` (not by switching channels). One you remove with `herdr integration
+  uninstall` stays on that list, which is what keeps it from coming back; agents' config files aren't backed up
+  first. The hooks only act inside herdr, so they're harmless in GNOME, which shares `~/.claude` and the other
+  agent folders.
 - **Screensaver inhibit bridge** (`omarchy-idle-inhibit-bridge`): answers apps that ask over DBus to keep the
   screen awake (browsers during video calls, video players) by holding a Wayland idle inhibitor, the only kind
   Omarchy's shell honours.

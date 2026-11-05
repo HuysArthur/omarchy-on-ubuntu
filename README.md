@@ -50,8 +50,9 @@ replaced is restored.
 - Hyprland is installed in `/opt/hyprland`, away from Ubuntu's own packages.
 - The installer adds one line to `~/.bashrc` and `~/.zshrc` for Omarchy's herdr commands and agent shortcuts;
   it only does something in the Omarchy session, and uninstalling removes it.
-- The coding-agent commands (`claude`, `codex`, `opencode`, ...) go in `~/.local/bin`, which GNOME also has on
-  its PATH, so they work there too. Any you already have are left alone.
+- The coding-agent commands (`claude`, `codex`, `opencode`, ...) come from mise and only exist in the Omarchy
+  session; in GNOME, `claude` and the others stay whatever you installed yourself. One you install yourself in
+  `~/.local/bin` is used in the Omarchy session too.
 - For agents you've used, the installer adds herdr's hooks to their config (`~/.claude/settings.json` and the
   like). GNOME shares those files, but the hooks only act inside herdr. It isn't backed up; uninstalling removes
   the hooks, and if you remove one yourself (`herdr integration uninstall <agent>`), it stays removed.
