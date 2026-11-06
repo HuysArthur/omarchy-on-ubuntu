@@ -1,0 +1,13 @@
+# Omarchy migrations reviewed for Ubuntu, one per line: <name> run|skip  # reason
+#
+#   run   omarchy-migrate runs it, with the layer first on PATH. Only for migrations that edit user config
+#         (nothing with sudo, /etc, pacman or Arch-only hardware), and that leave a config that is already
+#         current as it is: an install from before omarchy-migrate ran migrations gets every run entry
+#         newer than layer/migrations.baseline, whatever version its configs came from.
+#   skip  omarchy-migrate marks it done without running it.
+#
+# A migration that isn't listed stays pending, and omarchy-migrate warns about it. Name order doesn't matter
+# here; omarchy-migrate runs them in Omarchy's order (by file name).
+
+1791968925 run   # Bar: writes the tray where the bar drew it (shell.json). Before 1791969355, as that one says.
+1791969355 run   # Bar: splits center at centerAnchor into centerBegin/center/centerEnd (shell.json), so the indicators stop shifting on hover.

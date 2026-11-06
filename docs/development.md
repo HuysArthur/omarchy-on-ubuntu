@@ -48,6 +48,15 @@ Details for people changing this project. Users only need the [README](../README
 - **Screensaver inhibit bridge** (`omarchy-idle-inhibit-bridge`): answers apps that ask over DBus to keep the
   screen awake (browsers during video calls, video players) by holding a Wayland idle inhibitor, the only kind
   Omarchy's shell honours.
+- **Config migrations** (`layer/bin/omarchy-migrate`): upstream runs every new script in Omarchy's
+  `migrations/` once; many of them call pacman, change `/etc` or set up Arch-only hardware. Here only the ones
+  `layer/migrations.list` marks `run` are run, at Hyprland login (`layer/lua/hypr.lua`, logged to the journal
+  as `omarchy-migrate`) and after **Update > Omarchy**, restarting the shell when one ran; `skip` ones are
+  marked done, unlisted ones stay pending. They run in the session, not from `install.sh`, because some talk
+  to the shell over IPC. Done migrations are marked in `~/.local/state/omarchy/migrations`, as upstream.
+  `install.sh` writes those markers once: on a first install every migration of the checkout (its configs are
+  current), on an install from before migrations ran here the ones in `layer/migrations.baseline` (what
+  v4.0.6, the first pinned Omarchy, shipped).
 - **Patches** (`patches/`), applied to the Omarchy checkout by `install.sh`: variables named `native` in the
   background services that Ubuntu's Qt 6.10 QML parser rejects (it reserves Java's keywords), the Update >
   Channel menu, the app launcher's uninstall action (apt and snap instead of pacman), Remove menu entries that
@@ -56,6 +65,14 @@ Details for people changing this project. Users only need the [README](../README
   would pick up too), menu entries hidden because they need Arch, and the Ubuntu names of browsers in
   `omarchy-default-browser` (which installs a browser it doesn't find) and `omarchy-remove-browser`, the
   titlebars plugin's path under `/opt/hyprland`, and Superwhisper's paths under `/usr/local`.
+
+## Moving to a newer Omarchy
+
+Changing `OMARCHY_REF` in `install.sh` brings new migrations. Read each one that isn't in
+`layer/migrations.list` (`comm -13 <(git ls-tree --name-only <old> migrations/ | sort) <(git ls-tree --name-only
+<new> migrations/ | sort)` in an Omarchy clone) and add it as `run` or `skip` with the reason. Only `run` what
+edits user config and leaves a config that's already current as it is; anything with sudo, `/etc`, pacman or
+Arch-only hardware is `skip`. Migration names are timestamps but aren't in release order, so compare by name.
 
 ## How GNOME is kept separate
 
