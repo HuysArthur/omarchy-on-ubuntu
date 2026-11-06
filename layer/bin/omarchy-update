@@ -10,5 +10,8 @@ if [[ ${1:-} == -y ]]; then sudo apt full-upgrade -y; else sudo apt full-upgrade
 command -v flatpak >/dev/null && flatpak update -y || true
 echo
 omarchy-channel-set update || echo "omarchy-ubuntu was not updated (see above)."
+# A newer pinned Omarchy brings new migrations; run them now rather than at the next login. The shell is
+# restarted first, as upstream: it may still run the checkout from before the update.
+omarchy-migrate --restart-shell || true
 echo
 read -n 1 -s -r -p "Done. Press any key to close."

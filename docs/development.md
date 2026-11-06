@@ -48,6 +48,16 @@ Details for people changing this project. Users only need the [README](../README
 - **Screensaver inhibit bridge** (`omarchy-idle-inhibit-bridge`): answers apps that ask over DBus to keep the
   screen awake (browsers during video calls, video players) by holding a Wayland idle inhibitor, the only kind
   Omarchy's shell honours.
+- **Config migrations** (`layer/bin/omarchy-migrate`): upstream runs every new script in Omarchy's
+  `migrations/` once; many of them call pacman, change `/etc` or set up Arch-only hardware. Here only the ones
+  `layer/migrations.list` marks `run` are run, at Hyprland login (`layer/lua/hypr.lua`, logged to the journal
+  as `omarchy-migrate`) and after **Update > Omarchy** (which restarts the shell first, as upstream, in case
+  the checkout changed); `skip` ones are marked done, unlisted ones stay pending. They run in the session, not
+  from `install.sh`, because some ask the shell to change the bar: `omarchy-migrate` waits for the shell and
+  leaves them for the next login when it doesn't come up. Done migrations are marked in `~/.local/state/omarchy/migrations`, as upstream.
+  `install.sh` writes those markers once: on a first install every migration of the checkout (its configs are
+  current), on an install from before migrations ran here the ones in `layer/migrations.baseline` (what
+  v4.0.6, the first pinned Omarchy, shipped).
 - **Patches** (`patches/`), applied to the Omarchy checkout by `install.sh`: variables named `native` in the
   background services that Ubuntu's Qt 6.10 QML parser rejects (it reserves Java's keywords), the Update >
   Channel menu, the app launcher's uninstall action (apt and snap instead of pacman), Remove menu entries that
@@ -56,6 +66,16 @@ Details for people changing this project. Users only need the [README](../README
   would pick up too), menu entries hidden because they need Arch, and the Ubuntu names of browsers in
   `omarchy-default-browser` (which installs a browser it doesn't find) and `omarchy-remove-browser`, the
   titlebars plugin's path under `/opt/hyprland`, and Superwhisper's paths under `/usr/local`.
+
+## Moving to a newer Omarchy
+
+Changing `OMARCHY_REF` in `install.sh` brings new migrations. `tools/check-migrations` lists the ones that
+aren't in `layer/migrations.list` (and fails until they are); read each and add it as `run` or `skip` with the
+reason. Only `run` what edits user config or state and leaves a config that's already current as it is;
+anything with sudo, `/etc`, packages, mise or Arch-only hardware is `skip` (at login there's no terminal for
+sudo, and a failed migration holds back the ones after it). Migration names are timestamps but aren't in
+release order, so the check compares by name. It's in `tools/`, not `build/`, which would trigger the Package
+workflow.
 
 ## How GNOME is kept separate
 

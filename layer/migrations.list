@@ -1,0 +1,111 @@
+# Omarchy migrations reviewed for Ubuntu, one per line: <name> run|skip  # reason
+#
+#   run   omarchy-migrate runs it at Hyprland login, with the layer first on PATH and no terminal. Only for
+#         migrations that edit user config or state (never sudo, /etc, packages, mise or Arch-only hardware:
+#         sudo has no terminal to ask in, and a failure holds back every migration after it), and that leave
+#         a config that is already current as it is: an install from before omarchy-migrate ran migrations
+#         gets every run entry newer than layer/migrations.baseline, whatever version its configs came from.
+#   skip  omarchy-migrate marks it done without running it.
+#
+# A migration that isn't listed stays pending, and omarchy-migrate warns about it; tools/check-migrations
+# fails on it. Omarchy's order is by file name, and so is this list's.
+
+# ---- v4.5.0 ------------------------------------------------------------------------------------------------
+1786609204 skip  # Only prints a message.
+1786719479 skip  # Gemini -> Antigravity: installs agy through mise, which the port doesn't set up.
+1786967403 skip  # mise wrapper (Kimi); the port doesn't set up mise.
+1787215824 skip  # mise wrapper (hey); the port doesn't set up mise.
+1787342993 skip  # mise wrapper (ori); the port doesn't set up mise.
+1787573629 skip  # Regenerates mise wrappers; the port doesn't set up mise.
+1787666837 skip  # Dell XPS 13 speaker amplifiers: hardware, /etc.
+1787679775 run   # Deletes saved layouts of named workspaces (~/.local/state), hyprctl reload. Only acts on files named -*.lua.
+1788129995 skip  # Omasnap is in the Hyprland package; this installs it with omarchy-pkg-add and drops Satty/Tensaku (sudo).
+1788163635 skip  # Removes temporary sudo grants in /etc/sudoers.d.
+1788256455 skip  # polkit/PAM brute-force protection in /etc.
+1788261467 skip  # Secret portal config: install.sh places hyprland-portals.conf.
+1788279117 skip  # YT6801 Ethernet DKMS driver: hardware, Arch kernel.
+1788281348 run   # Re-stages the current theme (omarchy-theme-refresh) when it has intro videos. Same as Setup > Theme.
+1788595060 skip  # Chromium native messaging hosts: the port doesn't install Omarchy's browser extensions, and browser profiles are shared with GNOME.
+1788596255 skip  # Installs vi (package).
+1788862626 skip  # Elgato Cam Link virtual camera: hardware, /etc.
+1788941927 skip  # mise wrapper (basecamp); the port doesn't set up mise.
+1789294350 skip  # BBR congestion control: system-wide sysctl in /etc, would change GNOME too.
+1789310715 skip  # mise wrapper (cf); the port doesn't set up mise.
+1789764927 skip  # owe: in the Hyprland package; install.sh places owed.service and its theme-set hook.
+1789928586 skip  # ARM Limine recovery packages: Arch boot.
+1790042972 run   # Puts Elsewhen on the bar (omarchy-bar, needs the shell), unless it's already there.
+1790364978 skip  # GB10 sleep: hardware, /etc.
+1790457067 skip  # Node pin in mise's config; the port doesn't set up mise.
+1790517230 skip  # DGX Spark boot: hardware, Limine.
+1790528634 run   # Renames omacom.elsewhen to omarchy.elsewhen in shell.json. Its omarchy-pkg-drop elsewhen does nothing on Ubuntu (never installed).
+1790539857 skip  # Installs Monologue (package); it's in the Hyprland package.
+1790542069 skip  # Installs Hype (package); it's in the Hyprland package.
+1790702362 skip  # Installs base-devel and Qt (packages).
+1790702606 skip  # Links the omarchy-app skill into ~/.claude, ~/.codex, ...: the port doesn't link Omarchy's agent skills.
+1790863209 skip  # Grok through mise; the port doesn't set up mise.
+1790917415 skip  # ASUS ProArt P14 (N1x) touchpad: hardware.
+1790917571 skip  # ASUS ProArt P14 (N1x) audio: hardware.
+1790917620 skip  # N1x aarch64 pacman repository.
+1790917773 skip  # N1x quiet boot: hardware, boot.
+1790950659 skip  # N1x Plymouth panel: hardware, boot.
+1790953795 skip  # ASUS ProArt P14 (N1x) RAM reservation: hardware, boot.
+1790973240 skip  # ASUS ProArt P14 (N1x) speaker tuning: hardware.
+1790984400 skip  # Dell XPS 16 (N1x) RAM reservation: hardware, boot.
+1790984500 skip  # N1x zram and memory tuning: hardware, /etc.
+1790984600 skip  # N1x USB4/Thunderbolt: hardware.
+1790984700 skip  # N1x GPU firmware memory: hardware, boot.
+1791077437 skip  # N1x kernel switch: hardware, pacman.
+1791080527 skip  # Snapdragon ThinkPad camera: hardware.
+1791112479 skip  # mise reshim; the port doesn't set up mise.
+1791123731 run   # Appends a commented transparency example to ~/.config/hypr/looknfeel.lua, unless it's there.
+1791125650 skip  # Fingerprint resume hook: /etc, sudo.
+1791134093 skip  # ASUS ProArt P14 USB4 ports: hardware.
+1791147791 skip  # ARP sysctl in /etc: system-wide, would change GNOME too.
+1791152480 skip  # N1x rescue boot entry and pacman hook.
+1791345484 skip  # Disktree is in the Hyprland package; this installs disktree-bin and drops dua-cli (sudo).
+1791367434 skip  # Installs Fcitx input methods (packages); the port doesn't set up Fcitx.
+1791376887 skip  # Edits ~/.config/*-flags.conf, Arch's browser wrapper files, which browsers in GNOME would share.
+1791382872 skip  # mise lazy shims; the port doesn't set up mise.
+1791403310 skip  # Installs the titlebars plugin (package); it's in the Hyprland package.
+1791408113 skip  # ASUS ProArt P14 keyboard: hardware.
+1791470456 run   # Points background selections at the bundled images' new .webp names (~/.local/state). Only acts on a missing image.
+1791479273 skip  # Keeps Voxtype as dictation for existing users; Voxtype isn't available on Ubuntu.
+1791542175 skip  # Installs Gliff (package); it's in the Hyprland package.
+1791554699 skip  # power-profiles-daemon build for ARM: package.
+1791640449 run   # Moves the keyboard layout widget from the bar's center to the right (omarchy-bar, needs the shell).
+1791676907 skip  # Fcitx hotkey; the port doesn't set up Fcitx (it fills a list only 1791367434 leaves empty).
+1791696584 run   # Adds StartupWMClass to web app launchers in ~/.local/share/applications, so titlebars name them. Skips launchers that have one.
+1791698594 run   # Rewrites saved workspace layouts (~/.local/state) as workspace modes.
+1791705142 run   # Moves the opacity rule out of the saved no-animations toggle (~/.local/state).
+1791708587 skip  # Installs Signed (package); it's in the Hyprland package.
+1791722809 run   # herdr tab bar background in ~/.config/herdr/config.toml, only if it's still the shipped black.
+1791723398 skip  # Neovim config from the omarchy-nvim package, which Ubuntu doesn't have (the migration exits without it).
+1791769486 skip  # USB/Thunderbolt device approval: /etc, sudo.
+1791784278 skip  # N1x GPU memory reservation: hardware, boot.
+1791867831 skip  # N1x CPPC: hardware.
+1791875754 run   # Adds StartupWMClass to web app launchers with their own command (HEY). Skips launchers that have one.
+1791898365 skip  # Boot menu speed: Limine.
+1791968925 run   # Bar: writes the tray where the bar drew it (shell.json). Before 1791969355, as that one says.
+1791969355 run   # Bar: splits center at centerAnchor into centerBegin/center/centerEnd (shell.json), so the indicators stop shifting on hover.
+1792020559 skip  # Fcitx theme; the port doesn't set up Fcitx.
+1792041364 skip  # Gliff on aarch64 (package).
+1792202836 skip  # Snapdragon video decoding: hardware.
+1792259038 run   # Points background selections at renumbered bundled images (~/.local/state). Only acts on a missing image.
+1792343099 skip  # Node in mise's config; the port doesn't set up mise.
+1792343225 skip  # mise auto_prune setting; the port doesn't set up mise.
+1792345511 skip  # T3 Code package -> app; Ubuntu has no t3code package (the migration exits without it).
+1792359308 skip  # Snapdragon cameras in Chromium: hardware.
+1792474908 skip  # Copy URL extension in Brave Origin profiles: the port doesn't install Omarchy's browser extensions, and browser profiles are shared with GNOME.
+1792504295 skip  # mise lazy shims; the port doesn't set up mise.
+1792507034 skip  # NetworkManager connectivity check: sudo nmcli, system-wide.
+1792634594 skip  # N1x SoundWire mixer state: hardware.
+1792648436 run   # Removes the 4.0 notification engine's files from ~/.local/state, carrying over Do Not Disturb.
+1792965062 skip  # Hibernation resume device: /etc, Limine, mkinitcpio.
+1793069744 skip  # FIDO2 authfile paths: PAM in /etc.
+1793315076 skip  # Apple Silicon shell setup: hardware.
+1793452544 skip  # Intel video decoding (package).
+1793477875 skip  # Keeps the pre-4.5 dictation keys for existing users: the port had no dictation before 4.5, and install.sh places defaults/dictation, which would make it add them for everyone.
+1793512402 skip  # Installs xorg-xsetroot (package); install.sh installs x11-xserver-utils.
+1793531426 skip  # GB10 CPU idle states: hardware.
+1793565796 run   # OpenCode theme in ~/.config/opencode/cli.json, only where none is set.
+1793667581 skip  # Re-runs the Superwhisper installer (sudo) when ~/.local/share/superwhisper/app/current is missing.
