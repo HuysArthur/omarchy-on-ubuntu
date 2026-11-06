@@ -1,1 +1,79 @@
-omarchy-ubuntu-noop
+#!/bin/bash
+# Ubuntu replacement for Omarchy's omarchy-migrate. Upstream runs every new script in $OMARCHY_PATH/migrations
+# once; many of those call pacman, change /etc or set up Arch-only hardware. Here only the migrations that
+# migrations.list (next to this bin/) marks "run" are run; "skip" ones are marked done without running, and
+# unlisted ones stay pending with a warning, so a newer OMARCHY_REF never runs an unreviewed migration.
+# Done migrations are marked in Omarchy's own state directory.
+#   omarchy-migrate                   run what's pending
+#   omarchy-migrate --pending         list pending migrations (exit 1 when there are none), as upstream
+#   omarchy-migrate --restart-shell   also restart the shell when a migration ran (Hyprland login, omarchy-update)
+set -euo pipefail
+
+mode=run
+case ${1:-} in
+  '') ;;
+  --pending | --check) mode=pending ;;
+  --restart-shell) mode=restart ;;
+  -h | --help) echo "Usage: omarchy-migrate [--pending | --restart-shell]"; exit 0 ;;
+  *) echo "Unknown option: $1" >&2; exit 1 ;;
+esac
+
+LAYER=$(dirname "$(dirname "$(realpath "$0")")")
+OMARCHY_PATH=${OMARCHY_PATH:-$HOME/.local/share/omarchy}
+STATE_DIR=${OMARCHY_MIGRATION_STATE:-$HOME/.local/state/omarchy/migrations}
+MIGRATIONS_DIR=$OMARCHY_PATH/migrations
+
+declare -A action=()
+while read -r name verdict _; do
+  [[ -z $name || $name == \#* ]] && continue
+  [[ $verdict == run || $verdict == skip ]] || { echo "migrations.list: '$name' needs run or skip" >&2; exit 1; }
+  action[${name%.sh}]=$verdict
+done <"$LAYER/migrations.list"
+
+pending() {
+  local file
+  for file in "$MIGRATIONS_DIR"/*.sh; do
+    [[ -f $file && ! -f $STATE_DIR/$(basename "$file") ]] && basename "$file"
+  done
+  return 0
+}
+
+if [[ $mode == pending ]]; then
+  list=$(pending)
+  [[ -n $list ]] || exit 1
+  echo "$list"
+  exit 0
+fi
+
+# Migrations edit shell.json behind the shell's back (its file watcher is off): have it read them.
+restart_shell() {
+  if ((ran)) && [[ $mode == restart ]]; then
+    omarchy-restart-shell >/dev/null 2>&1 || true
+  fi
+}
+
+mkdir -p "$STATE_DIR"
+ran=0 unreviewed=0
+for name in $(pending); do
+  case ${action[${name%.sh}]:-} in
+    run)
+      echo -e "\e[32m\nRunning migration (${name%.sh})\e[0m"
+      # Stops at the first failure, unmarked, like upstream: later migrations can depend on earlier ones.
+      # The next run (next login) tries it again.
+      if ! OMARCHY_PATH="$OMARCHY_PATH" bash -euo pipefail "$MIGRATIONS_DIR/$name"; then
+        echo "Migration ${name%.sh} failed; it and the ones after it run next time." >&2
+        restart_shell
+        exit 1
+      fi
+      touch "$STATE_DIR/$name"
+      ran=1
+      ;;
+    skip) touch "$STATE_DIR/$name" ;;
+    *) unreviewed=$((unreviewed + 1)) ;;
+  esac
+done
+
+if ((unreviewed)); then
+  echo "$unreviewed Omarchy migration(s) not reviewed for Ubuntu yet (not in $LAYER/migrations.list); left pending." >&2
+fi
+restart_shell
