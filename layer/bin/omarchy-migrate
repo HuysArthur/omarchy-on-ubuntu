@@ -4,9 +4,10 @@
 # migrations.list (next to this bin/) marks "run" are run; "skip" ones are marked done without running, and
 # unlisted ones stay pending with a warning, so a newer OMARCHY_REF never runs an unreviewed migration.
 # Done migrations are marked in Omarchy's own state directory.
-#   omarchy-migrate                   run what's pending
+#   omarchy-migrate                   run what's pending (at Hyprland login, see lua/hypr.lua)
+#   omarchy-migrate --restart-shell   restart the shell first when there's one to run (omarchy-update: the
+#                                     shell may still run the Omarchy checkout from before the update)
 #   omarchy-migrate --pending         list pending migrations (exit 1 when there are none), as upstream
-#   omarchy-migrate --restart-shell   also restart the shell when a migration ran (Hyprland login, omarchy-update)
 set -euo pipefail
 
 mode=run
@@ -45,35 +46,45 @@ if [[ $mode == pending ]]; then
   exit 0
 fi
 
-# Migrations edit shell.json behind the shell's back (its file watcher is off): have it read them.
-restart_shell() {
-  if ((ran)) && [[ $mode == restart ]]; then
-    omarchy-restart-shell >/dev/null 2>&1 || true
-  fi
-}
-
 mkdir -p "$STATE_DIR"
-ran=0 unreviewed=0
+to_run=() unreviewed=0
 for name in $(pending); do
   case ${action[${name%.sh}]:-} in
-    run)
-      echo -e "\e[32m\nRunning migration (${name%.sh})\e[0m"
-      # Stops at the first failure, unmarked, like upstream: later migrations can depend on earlier ones.
-      # The next run (next login) tries it again.
-      if ! OMARCHY_PATH="$OMARCHY_PATH" bash -euo pipefail "$MIGRATIONS_DIR/$name"; then
-        echo "Migration ${name%.sh} failed; it and the ones after it run next time." >&2
-        restart_shell
-        exit 1
-      fi
-      touch "$STATE_DIR/$name"
-      ran=1
-      ;;
+    run) to_run+=("$name") ;;
     skip) touch "$STATE_DIR/$name" ;;
     *) unreviewed=$((unreviewed + 1)) ;;
   esac
 done
-
 if ((unreviewed)); then
   echo "$unreviewed Omarchy migration(s) not reviewed for Ubuntu yet (not in $LAYER/migrations.list); left pending." >&2
 fi
-restart_shell
+((${#to_run[@]})) || exit 0
+
+# Some migrations ask the shell to change the bar, and treat a shell that can't be asked as done. So wait for
+# it (at login it starts alongside this), and leave everything pending when it doesn't come up.
+if [[ $mode == restart ]]; then
+  omarchy-restart-shell || true
+fi
+shell_up=0
+for _ in {1..600}; do
+  if OMARCHY_SHELL_IPC_TIMEOUT=0.5s omarchy-shell shell ping >/dev/null 2>&1; then
+    shell_up=1
+    break
+  fi
+  sleep 0.1
+done
+if ((!shell_up)); then
+  echo "The Omarchy shell isn't running; ${#to_run[@]} migration(s) left for the next Hyprland login." >&2
+  exit 1
+fi
+
+for name in "${to_run[@]}"; do
+  echo -e "\e[32m\nRunning migration (${name%.sh})\e[0m"
+  # Stops at the first failure, unmarked, like upstream: later migrations can depend on earlier ones.
+  # The next run (next login) tries it again.
+  if ! OMARCHY_PATH="$OMARCHY_PATH" bash -euo pipefail "$MIGRATIONS_DIR/$name"; then
+    echo "Migration ${name%.sh} failed; it and the ones after it run next time." >&2
+    exit 1
+  fi
+  touch "$STATE_DIR/$name"
+done

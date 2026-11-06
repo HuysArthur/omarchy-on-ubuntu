@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# Checks layer/migrations.list against the Omarchy version install.sh pins (OMARCHY_REF): every migration it
+# ships is either in layer/migrations.baseline (marked done on installs from before migrations ran here) or
+# reviewed in migrations.list, and every listed one exists. Run it after changing OMARCHY_REF.
+#   tools/check-migrations [OMARCHY_CHECKOUT]
+# Without a checkout it fetches the pinned tag's file list (no file contents) into a temporary clone.
+set -euo pipefail
+
+REPO=$(cd "$(dirname "$0")/.." && pwd)
+ref=$(sed -n 's/^OMARCHY_REF=//p' "$REPO/install.sh")
+url=$(sed -n 's/^OMARCHY_REPO=//p' "$REPO/install.sh")
+[[ -n $ref && -n $url ]] || { echo "OMARCHY_REF or OMARCHY_REPO not found in install.sh" >&2; exit 1; }
+
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+
+if [[ -n ${1:-} ]]; then
+  ls "$1"/migrations/*.sh >/dev/null 2>&1 || { echo "No migrations in $1" >&2; exit 1; }
+  for f in "$1"/migrations/*.sh; do basename "$f" .sh; done | sort >"$tmp/shipped"
+  echo "Checking against $1"
+else
+  git clone -q --depth 1 --filter=blob:none --no-checkout --branch "$ref" "$url" "$tmp/omarchy"
+  git -C "$tmp/omarchy" ls-tree --name-only HEAD migrations/ | sed -n 's#^migrations/\(.*\)\.sh$#\1#p' | sort >"$tmp/shipped"
+  echo "Checking against Omarchy $ref"
+fi
+
+fail=0
+grep -v '^#' "$REPO/layer/migrations.baseline" | sort >"$tmp/baseline"
+awk '!/^[[:space:]]*(#|$)/ { print $1 }' "$REPO/layer/migrations.list" | sed 's/\.sh$//' | sort >"$tmp/listed"
+
+bad=$(awk '!/^[[:space:]]*(#|$)/ && $2 != "run" && $2 != "skip" { print $1 }' "$REPO/layer/migrations.list")
+[[ -z $bad ]] || { echo "Needs run or skip in migrations.list:" $bad; fail=1; }
+
+dupes=$(uniq -d "$tmp/listed")
+[[ -z $dupes ]] || { echo "Listed twice in migrations.list:" $dupes; fail=1; }
+
+noreason=$(awk '!/^[[:space:]]*(#|$)/ && !/#/ { print $1 }' "$REPO/layer/migrations.list")
+[[ -z $noreason ]] || { echo "No reason (# ...) in migrations.list:" $noreason; fail=1; }
+
+unreviewed=$(comm -23 "$tmp/shipped" <(sort -u "$tmp/baseline" "$tmp/listed"))
+if [[ -n $unreviewed ]]; then
+  echo "Not reviewed in layer/migrations.list (add each as run or skip, see its header):"
+  printf '  %s\n' $unreviewed
+  fail=1
+fi
+
+gone=$(comm -13 "$tmp/shipped" <(sort -u "$tmp/listed"))
+[[ -z $gone ]] || { echo "In migrations.list but not in Omarchy $ref:" $gone; fail=1; }
+
+((fail)) || echo "All $(wc -l <"$tmp/shipped") migrations accounted for ($(wc -l <"$tmp/listed") reviewed)."
+exit $fail
