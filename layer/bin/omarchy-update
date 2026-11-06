@@ -15,7 +15,8 @@ omarchy-channel-set update || echo "omarchy-ubuntu was not updated (see above)."
 # herdr's integration for agents you've started using since (does nothing without herdr). After the update, so
 # it's the new layer's version with its list of agents.
 "$HOME/.local/share/omarchy-ubuntu/bin/omarchy-ubuntu-herdr-integrations"
-# A newer pinned Omarchy brings new migrations; run them now rather than at the next login.
+# A newer pinned Omarchy brings new migrations; run them now rather than at the next login. The shell is
+# restarted first, as upstream: it may still run the checkout from before the update.
 omarchy-migrate --restart-shell || true
 echo
 read -n 1 -s -r -p "Done. Press any key to close."
