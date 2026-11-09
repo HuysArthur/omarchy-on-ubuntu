@@ -67,6 +67,11 @@ fetch aquamarine          "$GH/aquamarine"          "$AQUAMARINE_REV";          
 fetch hyprwire            "$GH/hyprwire"            "$HYPRWIRE_REV";            cmake_build hyprwire
 fetch hyprland-protocols  "$GH/hyprland-protocols"  "$HYPRLAND_PROTOCOLS_REV";  cmake_build hyprland-protocols
 
+# hyprland-dialog: without it Hyprland 0.57.1 crashes when it opens a dialog (safe mode after a crash,
+# an app not responding, a permission prompt) instead of skipping it.
+fetch hyprtoolkit        "$GH/hyprtoolkit"        "$HYPRTOOLKIT_REV";        cmake_build hyprtoolkit
+fetch hyprland-guiutils  "$GH/hyprland-guiutils"  "$HYPRLAND_GUIUTILS_REV";  cmake_build hyprland-guiutils
+
 fetch Hyprland "$GH/Hyprland" "$HYPRLAND_TAG"
 cmake_build Hyprland -DNO_HYPRPM=ON -DNO_UWSM=ON
 
