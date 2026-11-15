@@ -86,7 +86,7 @@ for f in "$HOME"/.local/share/applications/*.desktop; do
 done
 
 say "Removing Omarchy checkout and Ubuntu layer"
-rm -rf "$HOME/.local/share/omarchy" "$HOME/.local/share/omarchy-ubuntu" "$STATE"
+rm -rf "$HOME/.local/share/omarchy" "$HOME/.local/share/omarchy-ubuntu" "$HOME/.local/share/omarchy-ubuntu.new" "$STATE"
 fc-cache -f >/dev/null 2>&1 || true
 
 cat <<EOF

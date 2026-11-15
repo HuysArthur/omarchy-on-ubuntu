@@ -191,11 +191,21 @@ done
 
 # ---- Ubuntu layer ---------------------------------------------------------------
 say "Installing the Ubuntu layer into $LAYER"
-rm -rf "$LAYER"
-cp -a "$REPO/layer" "$LAYER"
+# Copied next to it, then swapped in with one rename: Hyprland reloads its config when files change during this
+# install, and hypr/hyprland.lua loads lua/hypr.lua from the layer, so a layer that's briefly gone leaves a
+# config error until the next reload.
+rm -rf "$LAYER.new"
+cp -a "$REPO/layer" "$LAYER.new"
 # omarchy-ubuntu's own config files, for omarchy-refresh-config to restore (hypr/hyprland.lua, uwsm/env). seed_configs
 # adds the ones generated for this machine.
-cp -a "$REPO/config" "$LAYER/config"
+cp -a "$REPO/config" "$LAYER.new/config"
+if [[ -d $LAYER && ! -L $LAYER ]]; then
+  mv --exchange -T "$LAYER.new" "$LAYER"
+  rm -rf "$LAYER.new"
+else
+  rm -rf "$LAYER"
+  mv -T "$LAYER.new" "$LAYER"
+fi
 
 # Superwhisper (dictation) is installed from its vendor when you pick it; bring it to the pinned version.
 if [[ -f /opt/superwhisper/.omarchy-ubuntu-version ]] && ! "$LAYER/libexec/superwhisper" current; then
