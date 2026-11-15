@@ -394,20 +394,23 @@ fi
 
 # ---- coding agents ------------------------------------------------------------
 # Omarchy 4.5 declares its coding agents (claude, codex, opencode, gemini, ...) and a few tools as lazy mise tools
-# in $OMARCHY_PATH/etc/mise/conf.d (on Arch, /etc/mise/conf.d): mise puts a shim for each in
-# ~/.local/share/mise/shims and installs the tool the first time it runs, and switching agent accounts goes
-# through mise command wrappers (~/.local/share/mise/command-wrappers/bin). Here mise reads that folder as its
-# system config only in the Hyprland session (MISE_SYSTEM_CONFIG_DIR in config/uwsm/env), which also puts those
-# two folders on PATH, so mise in GNOME and /etc/mise stay as they are. mise isn't in Ubuntu's archive: its PPA
+# in $OMARCHY_PATH/etc/mise/conf.d (on Arch, /etc/mise/conf.d): mise puts a shim for each in its shims folder
+# and installs the tool the first time it runs, and switching agent accounts goes through mise command wrappers.
+# Here mise reads that folder as its system config only in the Hyprland session (MISE_SYSTEM_CONFIG_DIR in
+# config/uwsm/env), with shims and wrappers of its own in $STATE/mise (MISE_DATA_DIR there), which it also puts
+# on PATH. So mise in GNOME, its shims and /etc/mise stay as they are; installs are shared. mise isn't in Ubuntu's archive: its PPA
 # keeps it updated with the rest of apt. Like herdr, this is an extra: if it fails, the install carries on.
 MISE_MINIMUM=2026.11.1 # lazy tools, system shims in $HOME and command wrappers, as Omarchy 4.5 uses them
 if ! command -v mise >/dev/null; then
   say "Installing mise from its PPA (sudo)"
+  # A PPA you added yourself stays, whatever happens.
+  mise_ppa=
+  grep -rqs 'ppa.launchpadcontent.net/jdxcode/mise' /etc/apt/sources.list.d/ || mise_ppa=1
   if ! { sudo apt-get install -y software-properties-common && sudo add-apt-repository -y ppa:jdxcode/mise &&
     sudo apt-get install -y mise; }; then
     warn "Couldn't install mise. Omarchy's coding agents need it; re-run install.sh to retry."
     # Leave no source behind: the apt update this script and omarchy-update depend on would fail on a broken PPA.
-    sudo add-apt-repository -y --remove ppa:jdxcode/mise 2>/dev/null || true
+    [[ -z $mise_ppa ]] || sudo add-apt-repository -y --remove ppa:jdxcode/mise 2>/dev/null || true
   fi
 fi
 if command -v mise >/dev/null; then
@@ -415,25 +418,37 @@ if command -v mise >/dev/null; then
   if [[ -z $mise_version || $(printf '%s\n' "$MISE_MINIMUM" "$mise_version" | sort -V | head -1) != "$MISE_MINIMUM" ]]; then
     warn "mise ${mise_version:-(unknown version)} is older than $MISE_MINIMUM, which Omarchy's coding agents need. Update it (sudo apt upgrade mise, or mise self-update)."
   fi
+  # An earlier version of this put the agents' shims and wrappers in mise's own folders, which GNOME uses too.
+  # Rebuild those once from your own mise config alone, which drops ours.
+  if [[ ! -d $STATE/mise ]]; then
+    mise_shared=$(dirname "${MISE_INSTALLS_DIR:-${MISE_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/mise}/installs}")
+    if [[ -d $mise_shared/command-wrappers || -d $mise_shared/shims ]]; then
+      env -u MISE_SYSTEM_CONFIG_DIR -u OMARCHY_MISE_CONFIG_PATH -u MISE_INSTALLS_DIR -u MISE_DOWNLOADS_DIR \
+        -u MISE_PLUGINS_DIR MISE_DATA_DIR="$mise_shared" MISE_OFFLINE=true mise reshim >/dev/null 2>&1 || true
+    fi
+  fi
   say "Setting up Omarchy's coding agents (mise shims)"
-  # What Omarchy's install/user/mise.sh does, with the session's system config.
-  MISE_SYSTEM_CONFIG_DIR=$OMARCHY_PATH/etc/mise MISE_OFFLINE=true mise reshim --system &&
-    MISE_SYSTEM_CONFIG_DIR=$OMARCHY_PATH/etc/mise MISE_OFFLINE=true mise reshim ||
-    warn "mise couldn't create the agents' shims (see above); re-run install.sh to retry."
+  # What Omarchy's install/user/mise.sh does, in the session's environment (config/uwsm/env, whatever session
+  # this runs in): the mise lines of that file, sourced in a subshell.
+  (
+    OMARCHY_PATH=$OMARCHY_PATH
+    eval "$(sed -n '/^mise_shared=/,/^export MISE_SYSTEM_CONFIG_DIR=/p' "$REPO/config/uwsm/env")"
+    MISE_OFFLINE=true mise reshim --system && MISE_OFFLINE=true mise reshim
+  ) || warn "mise couldn't create the agents' shims (see above); re-run install.sh to retry."
 fi
 
-# Before Omarchy 4.5, this put a launcher per agent in ~/.local/bin (still listed in $STATE/agent-launchers on
-# machines that ran that version). They'd now shadow the shims: the ones that are still Omarchy's go with this
-# run's cleanup, and one an agent's own installer has since replaced is yours, so it's left alone.
-if [[ -f $STATE/agent-launchers ]]; then
-  # shellcheck source=layer/lib/launchers.sh
-  . "$LAYER/lib/launchers.sh"
+# An earlier version of this put a launcher per agent in ~/.local/bin. They'd now shadow the shims: the ones
+# that are still Omarchy's go with this run's cleanup. One an agent's own installer has since replaced (a binary
+# or a link, not Omarchy's `mise use -g` script) is yours, so it's left alone. Every managed file there is
+# checked, whether or not that version listed it in $STATE/agent-launchers.
+if [[ -f $MANAGED ]]; then
   while IFS= read -r launcher; do
+    [[ $launcher == "$HOME"/.local/bin/* && $launcher != "$HERDR_BIN" ]] || continue
     [[ -e $launcher || -L $launcher ]] || continue
-    omarchy_launcher "$launcher" || forget "$launcher"
-  done <"$STATE/agent-launchers"
-  rm -f "$STATE/agent-launchers"
+    [[ -f $launcher && ! -L $launcher ]] && grep -q '^mise use -g' "$launcher" || forget "$launcher"
+  done < <(cat "$MANAGED")
 fi
+rm -f "$STATE/agent-launchers"
 # (The Cursor options that version copied to ~/.config/mise/conf.d are no longer placed, so this run's cleanup
 # removes them too: they now come from Omarchy's system config.)
 

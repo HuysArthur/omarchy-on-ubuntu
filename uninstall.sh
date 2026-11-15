@@ -15,13 +15,6 @@ if [[ -x $LAYER/bin/omarchy-ubuntu-herdr-integrations ]]; then
   say "Removing herdr's agent integrations"
   "$LAYER/bin/omarchy-ubuntu-herdr-integrations" --remove
 fi
-# Agent launchers you replaced with your own install since the last install.sh run stay where they are.
-omarchy_launcher() { false; }
-# shellcheck source=layer/lib/launchers.sh
-[[ -f $LAYER/lib/launchers.sh ]] && . "$LAYER/lib/launchers.sh"
-yours() {
-  grep -qxF "$1" "$STATE/agent-launchers" 2>/dev/null && ! omarchy_launcher "$1"
-}
 
 if dpkg-query -W -f='${db:Status-Abbrev}' hyprland-opt 2>/dev/null | grep -q '^ii'; then
   say "Removing the hyprland-opt package (sudo)"
@@ -45,7 +38,6 @@ if [[ -f $MANIFEST ]]; then
   say "Moving installed files to $ASIDE"
   while IFS= read -r path; do
     [[ $path == "$HOME"/* && ( -e $path || -L $path ) ]] || continue
-    yours "$path" && continue
     rel=${path#"$HOME"/}
     mkdir -p "$ASIDE/$(dirname "$rel")"
     mv "$path" "$ASIDE/$rel"
@@ -88,7 +80,8 @@ cat <<EOF
 
 Done. Pick "Ubuntu" on the login screen if it isn't selected already.
 Desktop packages installed from apt (ghostty, gum, grim, mise, ...) were left in place;
-remove them with apt if you don't want them. The coding agents mise downloaded are in
-~/.local/share/mise; delete that folder if you don't want them either.
+remove them with apt if you don't want them. The coding agents mise downloaded are with
+the rest of mise's installs (~/.local/share/mise/installs); \`mise uninstall\` them if
+you don't want them either.
 EOF
 [[ -d $ASIDE ]] && echo "Moved-aside files are in $ASIDE (delete when you're sure)."

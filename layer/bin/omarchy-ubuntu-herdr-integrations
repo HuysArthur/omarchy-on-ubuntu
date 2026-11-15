@@ -18,7 +18,10 @@ herdr=$(command -v herdr || echo "$HOME/.local/bin/herdr")
 
 if [[ ${1:-} == --remove ]]; then
   [[ -f $LIST ]] || exit 0
+  status=$("$herdr" integration status 2>/dev/null) || status=
   while IFS= read -r target; do
+    # One you already removed yourself stays listed (see above): nothing to do.
+    grep -q "^$target: not installed" <<<"$status" && continue
     "$herdr" integration uninstall "$target" >/dev/null 2>&1 ||
       echo "Could not remove the herdr integration for $target" >&2
   done <"$LIST"

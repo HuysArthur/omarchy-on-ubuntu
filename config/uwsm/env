@@ -9,11 +9,20 @@ export PATH="$HOME/.local/share/omarchy-ubuntu/bin:/opt/hyprland/bin:$OMARCHY_PA
 export DCONF_PROFILE="$HOME/.config/dconf/hyprland.profile"
 
 # Omarchy's coding agents: mise reads Omarchy's tool and account config (Arch: /etc/mise/conf.d) as its system
-# config in this session only. Its command wrappers (agent accounts) go first on PATH, its shims (the agents,
-# installed on first run) after the system's, as in Omarchy's env-bootstrap.
+# config in this session only. mise's shims and command wrappers follow its config, so this session keeps its
+# own (MISE_DATA_DIR): a reshim in GNOME, which doesn't see Omarchy's config, would otherwise delete the
+# agents' shims, and GNOME would get shims for tools it has no version of. What mise installs, downloads and
+# its plugins stay shared with GNOME, wherever your mise keeps them. The wrappers (agent accounts) go first on
+# PATH, the shims (the agents, installed on first run) after the system's, as in Omarchy's env-bootstrap.
+mise_shared="${MISE_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/mise}"
+export MISE_INSTALLS_DIR="${MISE_INSTALLS_DIR:-$mise_shared/installs}"
+export MISE_DOWNLOADS_DIR="${MISE_DOWNLOADS_DIR:-$mise_shared/downloads}"
+export MISE_PLUGINS_DIR="${MISE_PLUGINS_DIR:-$mise_shared/plugins}"
+unset mise_shared
+export MISE_DATA_DIR="$HOME/.local/state/omarchy-ubuntu/mise"
 export MISE_SYSTEM_CONFIG_DIR="$OMARCHY_PATH/etc/mise"
 export OMARCHY_MISE_CONFIG_PATH="$MISE_SYSTEM_CONFIG_DIR/conf.d/omarchy-tools.toml"
-export PATH="$HOME/.local/share/mise/command-wrappers/bin:$PATH:$HOME/.local/share/mise/shims"
+export PATH="$MISE_DATA_DIR/command-wrappers/bin:$PATH:$MISE_DATA_DIR/shims"
 
 # Launchers and icons of Omarchy's apps from the Hyprland package (Disktree, Hype, Omacalc, ...). Only this
 # session looks in /opt/hyprland/share, so they don't show up in GNOME.

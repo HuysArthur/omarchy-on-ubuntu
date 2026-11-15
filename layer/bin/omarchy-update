@@ -10,9 +10,10 @@ if [[ ${1:-} == -y ]]; then sudo apt full-upgrade -y; else sudo apt full-upgrade
 command -v flatpak >/dev/null && flatpak update -y || true
 # The coding agents and other tools mise installed (Omarchy's own step; does nothing without mise).
 omarchy-update-mise || echo "mise tools were not updated (see above)."
-# herdr's integration for agents you've started using since (does nothing without herdr).
-omarchy-ubuntu-herdr-integrations
 echo
 omarchy-channel-set update || echo "omarchy-ubuntu was not updated (see above)."
+# herdr's integration for agents you've started using since (does nothing without herdr). After the update, so
+# it's the new layer's version with its list of agents.
+"$HOME/.local/share/omarchy-ubuntu/bin/omarchy-ubuntu-herdr-integrations"
 echo
 read -n 1 -s -r -p "Done. Press any key to close."

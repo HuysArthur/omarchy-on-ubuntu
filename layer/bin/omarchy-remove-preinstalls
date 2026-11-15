@@ -22,6 +22,13 @@ for launcher in "${PREINSTALL_LAUNCHERS[@]}"; do
 done
 touch "$PREINSTALLS_REMOVED"
 # Omarchy's coding agents and tools from mise, as upstream (their shims go; what mise installed stays).
-command -v mise >/dev/null && omarchy-mise-default-tools disable
+mise_failed=
+if command -v mise >/dev/null && ! omarchy-mise-default-tools disable; then
+  mise_failed=1
+fi
 omarchy-restart-hyprctl
 echo "Preinstalled apps hidden. Bring them back with Install > Preinstalls."
+if [[ -n $mise_failed ]]; then
+  echo "Omarchy's coding agents and mise tools were not turned off (see above)." >&2
+  exit 1
+fi

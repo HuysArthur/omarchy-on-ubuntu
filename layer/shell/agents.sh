@@ -4,8 +4,10 @@
 # use (an alias, a function or a command) stays yours.
 [ -n "$OMARCHY_PATH" ] && [ -r "$OMARCHY_PATH/default/bash/aliases" ] || return 0
 
-for omarchy_ubuntu_alias in a c cx cy mup; do
-  type "$omarchy_ubuntu_alias" >/dev/null 2>&1 && continue
-  eval "$(grep -E "^alias $omarchy_ubuntu_alias=" "$OMARCHY_PATH/default/bash/aliases")"
-done
-unset omarchy_ubuntu_alias
+while IFS= read -r omarchy_ubuntu_alias; do
+  omarchy_ubuntu_name=${omarchy_ubuntu_alias#alias }
+  type "${omarchy_ubuntu_name%%=*}" >/dev/null 2>&1 || eval "$omarchy_ubuntu_alias"
+done <<EOF
+$(grep -E '^alias (a|c|cx|cy|mup)=' "$OMARCHY_PATH/default/bash/aliases")
+EOF
+unset omarchy_ubuntu_alias omarchy_ubuntu_name

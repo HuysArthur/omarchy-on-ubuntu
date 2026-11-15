@@ -50,13 +50,17 @@ Details for people changing this project. Users only need the [README](../README
   have a `mise`; `install.sh` warns when it's older than 2026.11.1, the first release with everything Omarchy
   4.5 uses. Omarchy 4.5 declares its agents (`claude`, `codex`, `opencode`, `gemini`, `copilot`, `grok`, `pi`,
   `cursor-agent` and the rest) and tools like `gh`, `hunk`, `playwright` and `node` as lazy mise tools in
-  `etc/mise/conf.d/omarchy-tools.toml`: mise keeps a shim for each in `~/.local/share/mise/shims` and installs
-  the tool on its first run, updating agents every four hours. `omarchy-agent-accounts.toml` adds command
-  wrappers (`~/.local/share/mise/command-wrappers/bin`) that run `claude`, `codex` and `grok` under the selected
-  agent account. On Arch that's `/etc/mise/conf.d`; here `config/uwsm/env` sets `MISE_SYSTEM_CONFIG_DIR` to
-  `$OMARCHY_PATH/etc/mise` and puts the wrappers first and the shims after the system's on PATH, all in the
-  Hyprland session only, so `/etc/mise` and mise in GNOME are untouched (mise trusts its system config, so
-  there's no trust prompt). `install.sh` creates the shims as Omarchy's `install/user/mise.sh` does (`mise
+  `etc/mise/conf.d/omarchy-tools.toml`: mise keeps a shim for each in its `shims/` and installs the tool on
+  its first run, updating agents every four hours. `omarchy-agent-accounts.toml` adds command wrappers
+  (`command-wrappers/bin`) that run `claude`, `codex` and `grok` under the selected agent account. On Arch
+  that's `/etc/mise/conf.d`; here `config/uwsm/env` sets `MISE_SYSTEM_CONFIG_DIR` to `$OMARCHY_PATH/etc/mise`,
+  in the Hyprland session only, so `/etc/mise` and mise in GNOME are untouched (mise trusts its system config,
+  so there's no trust prompt). mise rebuilds its shims and wrappers from the config it sees, so the session
+  keeps its own: `MISE_DATA_DIR` is `~/.local/state/omarchy-ubuntu/mise`, while `MISE_INSTALLS_DIR`,
+  `MISE_DOWNLOADS_DIR` and `MISE_PLUGINS_DIR` point at your usual mise folders (honouring `MISE_DATA_DIR` and
+  `XDG_DATA_HOME`), so installs are shared. Otherwise a `mise use` in GNOME would delete the agents' shims, and
+  GNOME would get shims for tools it has no version of. It puts the wrappers first and the shims after the
+  system's on PATH. `install.sh` creates the shims as Omarchy's `install/user/mise.sh` does (`mise
   reshim --system`, then `mise reshim`). An agent you installed yourself in `~/.local/bin` (Claude Code's native
   installer, say) comes first on PATH, where Ubuntu's `~/.profile` puts that folder. That makes **Setup >
   Defaults > Agent**, `omarchy agent`, `omarchy agent prompt` and Super+Shift+Ctrl+A work. `omarchy-update` runs
@@ -64,10 +68,12 @@ Details for people changing this project. Users only need the [README](../README
   Remove > Preinstalls and Install > Preinstalls also turn Omarchy's mise tools off and on
   (`omarchy-mise-default-tools`), as upstream. The shell line also loads Omarchy's `a`, `c`, `cx`, `cy` and
   `mup` aliases (`layer/shell/agents.sh`), except names you already use. Like herdr, this is an extra: if mise
-  can't be installed, the install carries on without it. `uninstall.sh` leaves mise and what it downloaded
-  (`~/.local/share/mise`). Before 4.5 this put a launcher per agent in `~/.local/bin`; on a machine that still
-  has them (listed in `~/.local/state/omarchy-ubuntu/agent-launchers`), the next run removes the ones that are
-  still Omarchy's and leaves one an agent's installer has since replaced (`layer/lib/launchers.sh`).
+  can't be installed, the install carries on without it (and removes the PPA only if it added it).
+  `uninstall.sh` leaves mise and what it installed, and removes the session's shims with the rest of
+  `~/.local/state/omarchy-ubuntu`. An earlier version of this branch put a launcher per agent in `~/.local/bin`
+  and the shims in mise's own folders: `install.sh` removes the launchers that are still Omarchy's (`mise use
+  -g` scripts), leaving one an agent's installer has since replaced, and rebuilds mise's own shims once from
+  your config alone. `omarchy-update` sets up herdr's integrations after updating the layer.
 - **herdr integration for agents**: `omarchy-ubuntu-herdr-integrations` runs `herdr integration install` for
   each of Omarchy's agents whose config folder exists (it has been run once), however it was installed; Omarchy
   doesn't set this up itself. `install.sh` and `omarchy-update` run it; an integration you installed yourself is
