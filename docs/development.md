@@ -139,7 +139,8 @@ Changing `OMARCHY_REF` in `install.sh` brings new migrations. `tools/check-migra
 aren't in `layer/migrations.list` (and fails until they are); read each and add it as `run` or `skip` with the
 reason. Only `run` what edits user config or state and leaves a config that's already current as it is;
 anything with sudo, `/etc`, packages, mise or Arch-only hardware is `skip` (at login there's no terminal for
-sudo, and a failed migration holds back the ones after it). Migration names are timestamps but aren't in
+sudo, and a failed migration holds back the ones after it; `install.sh` sets up mise's agents from the pinned
+release on every install, and mise's user config is shared with GNOME). Migration names are timestamps but aren't in
 release order, so the check compares by name. It's in `tools/`, not `build/`, which would trigger the Package
 workflow.
 
