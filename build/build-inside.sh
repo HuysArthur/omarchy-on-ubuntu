@@ -23,8 +23,15 @@ fetch() {
   local name=$1 url=$2 rev=$3
   [ -d "$SRC/$name/.git" ] || git clone -q --filter=blob:none "$url" "$SRC/$name"
   git -C "$SRC/$name" fetch -q --tags origin
-  git -C "$SRC/$name" checkout -q --detach "$rev"
+  # --force drops patches applied by an earlier build, so they apply cleanly again below.
+  git -C "$SRC/$name" checkout -q --force --detach "$rev"
   git -C "$SRC/$name" submodule update -q --init --recursive
+  local patch
+  for patch in /src/build/patches/"$name"/*.patch; do
+    [ -e "$patch" ] || continue
+    echo "==> $name: applying $(basename "$patch")"
+    git -C "$SRC/$name" apply "$patch"
+  done
 }
 
 cmake_build() {

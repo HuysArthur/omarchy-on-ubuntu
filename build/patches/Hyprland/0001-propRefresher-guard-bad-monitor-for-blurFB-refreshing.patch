@@ -1,0 +1,27 @@
+From 1aa477bed3e1534b345fba03b3b76c84b81b3044 Mon Sep 17 00:00:00 2001
+From: Vaxry <43317083+vaxerski@users.noreply.github.com>
+Date: Tue, 10 Nov 2026 11:33:46 +0100
+Subject: [PATCH] config/propRefresher: guard bad monitor for blurFB refreshing
+ (#16927)
+
+ref #16727
+---
+ src/config/supplementary/propRefresher/PropRefresher.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/config/supplementary/propRefresher/PropRefresher.cpp b/src/config/supplementary/propRefresher/PropRefresher.cpp
+index f199ce71..fa588936 100644
+--- a/src/config/supplementary/propRefresher/PropRefresher.cpp
++++ b/src/config/supplementary/propRefresher/PropRefresher.cpp
+@@ -80,7 +80,7 @@ void CPropRefresher::refreshProp(const bool execdAsScheduled) {
+         g_pHyprRenderer->refreshBlurProvider();
+ 
+         for (auto const& m : State::monitorState()->monitors()) {
+-            if (!m)
++            if (!m || m->m_transformedSize.x <= 0 || m->m_transformedSize.y <= 0)
+                 continue;
+ 
+             m->resources()->refreshBlurFB();
+-- 
+2.53.0
+

@@ -94,6 +94,9 @@ until you rebuild and reinstall the `.deb`.
 To move to a newer Hyprland, change `HYPRLAND_TAG` and copy the dependency revisions from that
 tag's `flake.lock`.
 
+Local fixes to a source go in `build/patches/<name>/*.patch` (`<name>` as passed to `fetch`, e.g.
+`Hyprland`); they're applied in order after checkout. Check they still apply, or drop them, when bumping.
+
 `install.sh` uses the newest `.deb` in `dist/`, or a path you pass it, before falling back to the release.
 
 ## Releases
