@@ -112,8 +112,9 @@ prune() {
 
 # ---- preflight ----------------------------------------------------------------
 [[ $EUID -ne 0 ]] || die "Run as your normal user, not root. sudo is used where needed."
-# First run: there's no manifest yet. Checked before anything is recorded.
-[[ -f $MANIFEST ]] && FRESH= || FRESH=1
+# First install: none has finished yet ($STATE/commit is written last), so a re-run after a failed first
+# install still counts as one.
+[[ -f $STATE/commit ]] && FRESH= || FRESH=1
 . /etc/os-release
 [[ ${ID:-} == ubuntu && ${VERSION_ID:-} == 26.04 ]] || die "Built for Ubuntu 26.04, found ${PRETTY_NAME:-unknown}."
 [[ $(dpkg --print-architecture) == amd64 ]] || die "Only amd64 is supported."
@@ -212,7 +213,7 @@ fi
 # ---- Omarchy migrations -------------------------------------------------------
 # The layer's omarchy-migrate runs the reviewed ones (layer/migrations.list) at Hyprland login. Here we only
 # mark what an install already has, in Omarchy's state directory, so a newer OMARCHY_REF runs just its new ones.
-MIGRATED=$HOME/.local/state/omarchy/migrations
+MIGRATED=${OMARCHY_MIGRATION_STATE:-$HOME/.local/state/omarchy/migrations}
 # mark_done NAME...: names without .sh; only migrations the checkout has.
 mark_done() {
   local name

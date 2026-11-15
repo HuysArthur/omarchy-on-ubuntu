@@ -91,10 +91,12 @@ Details for people changing this project. Users only need the [README](../README
   `migrations/` once; many of them call pacman, change `/etc` or set up Arch-only hardware. Here only the ones
   `layer/migrations.list` marks `run` are run, at Hyprland login (`layer/lua/hypr.lua`, logged to the journal
   as `omarchy-migrate`) and after **Update > Omarchy** (which restarts the shell first, as upstream, in case
-  the checkout changed); `skip` ones are marked done, unlisted ones stay pending. They run in the session, not
-  from `install.sh`, because some ask the shell to change the bar: `omarchy-migrate` waits for the shell and
-  leaves them for the next login when it doesn't come up. Done migrations are marked in `~/.local/state/omarchy/migrations`, as upstream.
-  `install.sh` writes those markers once: on a first install every migration of the checkout (its configs are
+  the checkout changed); `skip` ones are marked done, and an unlisted one stays pending along with every
+  migration after it, so they never run out of order. One `omarchy-migrate` runs at a time (a lock in
+  `$XDG_RUNTIME_DIR`). They run in the session, not from `install.sh`, because some ask the shell to change
+  the bar: before the first of those, `omarchy-migrate` waits up to a minute for the shell and leaves the rest
+  for the next login when it doesn't come up. Done migrations are marked in `~/.local/state/omarchy/migrations`, as upstream.
+  `install.sh` writes those markers once: on a first install (no install has finished yet) every migration of the checkout (its configs are
   current), on an install from before migrations ran here the ones in `layer/migrations.baseline` (what
   v4.0.6, the first pinned Omarchy, shipped).
 - **Patches** (`patches/`), applied to the Omarchy checkout by `install.sh`: variables named `native` in the

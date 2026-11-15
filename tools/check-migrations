@@ -47,5 +47,11 @@ fi
 gone=$(comm -13 "$tmp/shipped" <(sort -u "$tmp/listed"))
 [[ -z $gone ]] || { echo "In migrations.list but not in Omarchy $ref:" $gone; fail=1; }
 
+gone=$(comm -13 "$tmp/shipped" <(sort -u "$tmp/baseline"))
+[[ -z $gone ]] || { echo "In migrations.baseline but not in Omarchy $ref:" $gone; fail=1; }
+
+both=$(comm -12 <(sort -u "$tmp/baseline") <(sort -u "$tmp/listed"))
+[[ -z $both ]] || { echo "In both migrations.baseline and migrations.list:" $both; fail=1; }
+
 ((fail)) || echo "All $(wc -l <"$tmp/shipped") migrations accounted for ($(wc -l <"$tmp/listed") reviewed)."
 exit $fail
