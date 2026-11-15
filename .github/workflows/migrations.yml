@@ -1,0 +1,17 @@
+# Every Omarchy migration the pinned version (OMARCHY_REF) ships must be reviewed in layer/migrations.list.
+name: Migrations
+
+on:
+  push:
+    paths: [install.sh, layer/migrations.list, layer/migrations.baseline, tools/check-migrations, .github/workflows/migrations.yml]
+  pull_request:
+    paths: [install.sh, layer/migrations.list, layer/migrations.baseline, tools/check-migrations, .github/workflows/migrations.yml]
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: tools/check-migrations

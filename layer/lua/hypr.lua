@@ -19,3 +19,9 @@ hl.env("PATH", table.concat(path, ":"))
 -- uwsm-app sends output to /dev/null; systemd-cat keeps the bridge's inhibit/release lines in the journal.
 o.launch_on_start("systemd-cat -t omarchy-idle-inhibit-bridge omarchy-idle-inhibit-bridge")
 
+-- Omarchy's config migrations (the ones reviewed for Ubuntu, see layer/migrations.list). Some ask the shell
+-- over IPC, so they run here (omarchy-migrate waits for the shell) rather than from install.sh, which usually
+-- runs in GNOME. Upstream's omarchy-migrate-notify.service only offers to run them; these just edit user
+-- config, so run them quietly.
+o.launch_on_start("systemd-cat -t omarchy-migrate omarchy-migrate")
+

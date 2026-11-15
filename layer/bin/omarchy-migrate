@@ -1,1 +1,108 @@
-omarchy-ubuntu-noop
+#!/bin/bash
+# Ubuntu replacement for Omarchy's omarchy-migrate. Upstream runs every new script in $OMARCHY_PATH/migrations
+# once; many of those call pacman, change /etc or set up Arch-only hardware. Here only the migrations that
+# migrations.list (next to this bin/) marks "run" are run; "skip" ones are marked done without running, and
+# an unlisted one stays pending with a warning, with every migration after it, so a newer OMARCHY_REF never
+# runs an unreviewed migration or runs migrations out of order.
+# Done migrations are marked in Omarchy's own state directory.
+#   omarchy-migrate                   run what's pending (at Hyprland login, see lua/hypr.lua)
+#   omarchy-migrate --restart-shell   restart the shell before the first migration that uses it (omarchy-update:
+#                                     the shell may still run the Omarchy checkout from before the update)
+#   omarchy-migrate --pending         list pending migrations (exit 1 when there are none): upstream's own
+set -euo pipefail
+
+mode=run
+case ${1:-} in
+  '') ;;
+  --pending | --check) mode=pending ;;
+  --restart-shell) mode=restart ;;
+  -h | --help) echo "Usage: omarchy-migrate [--pending | --restart-shell]"; exit 0 ;;
+  *) echo "Unknown option: $1" >&2; exit 1 ;;
+esac
+
+LAYER=$(dirname "$(dirname "$(realpath "$0")")")
+# Exported: the omarchy-shell calls below (and in migrations) fail without it.
+export OMARCHY_PATH=${OMARCHY_PATH:-$HOME/.local/share/omarchy}
+STATE_DIR=${OMARCHY_MIGRATION_STATE:-$HOME/.local/state/omarchy/migrations}
+MIGRATIONS_DIR=$OMARCHY_PATH/migrations
+
+# Listing is the same as upstream's; reuse it so marker names and locations can't drift.
+if [[ $mode == pending ]]; then
+  exec "$OMARCHY_PATH/bin/omarchy-migrate" --pending
+fi
+
+declare -A action=()
+while read -r name verdict _; do
+  [[ -z $name || $name == \#* ]] && continue
+  [[ $verdict == run || $verdict == skip ]] || { echo "migrations.list: '$name' needs run or skip" >&2; exit 1; }
+  action[${name%.sh}]=$verdict
+done <"$LAYER/migrations.list"
+
+# One at a time: the login run and Update > Omarchy can overlap, and migrations rewrite the same files.
+lock=${XDG_RUNTIME_DIR:-/tmp}/omarchy-migrate.$UID.lock
+exec 9>"$lock"
+if ! flock -n 9; then
+  echo "Waiting for another omarchy-migrate to finish..."
+  flock 9
+fi
+
+mkdir -p "$STATE_DIR"
+# In Omarchy's order. Stops at the first unreviewed one: later migrations can depend on it.
+to_run=() unreviewed=()
+while read -r name; do
+  [[ -n $name ]] || continue
+  if ((${#unreviewed[@]})); then
+    [[ -n ${action[${name%.sh}]:-} ]] || unreviewed+=("$name")
+    continue
+  fi
+  case ${action[${name%.sh}]:-} in
+    run) to_run+=("$name") ;;
+    skip) ((${#to_run[@]})) && to_run+=("$name") || touch "$STATE_DIR/$name" ;;
+    *) unreviewed+=("$name") ;;
+  esac
+done < <("$OMARCHY_PATH/bin/omarchy-migrate" --pending || true)
+if ((${#unreviewed[@]})); then
+  echo "${#unreviewed[@]} Omarchy migration(s) not reviewed for Ubuntu yet (not in $LAYER/migrations.list): ${unreviewed[*]%.sh}." >&2
+  echo "They and the ones after them stay pending." >&2
+fi
+((${#to_run[@]})) || exit 0
+
+# Some migrations ask the shell to change the bar or background, and treat a shell that can't be asked as
+# done. Before the first of those, wait for the shell (at login it starts alongside this); when it doesn't
+# come up, that one and the ones after it stay pending. Migrations that don't use the shell don't wait.
+needs_shell() { grep -qE '\<omarchy-(bar|shell|theme-refresh)\>' "$MIGRATIONS_DIR/$1"; }
+shell_ready=0
+wait_for_shell() {
+  ((shell_ready)) && return 0
+  if [[ $mode == restart ]]; then
+    omarchy-restart-shell || true
+  fi
+  local deadline=$((SECONDS + 60))
+  while ((SECONDS < deadline)); do
+    if OMARCHY_SHELL_IPC_TIMEOUT=0.5s omarchy-shell shell ping >/dev/null 2>&1; then
+      shell_ready=1
+      return 0
+    fi
+    sleep 0.1
+  done
+  return 1
+}
+
+for name in "${to_run[@]}"; do
+  if [[ ${action[${name%.sh}]} == skip ]]; then
+    touch "$STATE_DIR/$name"
+    continue
+  fi
+  if needs_shell "$name" && ! wait_for_shell; then
+    echo "The Omarchy shell isn't running; ${name%.sh} and the migrations after it are left for the next Hyprland login." >&2
+    exit 1
+  fi
+  echo -e "\e[32m\nRunning migration (${name%.sh})\e[0m"
+  # Stops at the first failure, unmarked, like upstream: later migrations can depend on earlier ones.
+  # The next run (next login) tries it again.
+  if ! bash -euo pipefail "$MIGRATIONS_DIR/$name" 9>&-; then
+    echo "Migration ${name%.sh} failed; it and the ones after it run next time." >&2
+    exit 1
+  fi
+  touch "$STATE_DIR/$name"
+done

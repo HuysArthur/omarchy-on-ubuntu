@@ -112,6 +112,9 @@ prune() {
 
 # ---- preflight ----------------------------------------------------------------
 [[ $EUID -ne 0 ]] || die "Run as your normal user, not root. sudo is used where needed."
+# First install: none has finished yet ($STATE/commit is written last), so a re-run after a failed first
+# install still counts as one.
+[[ -f $STATE/commit ]] && FRESH= || FRESH=1
 . /etc/os-release
 [[ ${ID:-} == ubuntu && ${VERSION_ID:-} == 26.04 ]] || die "Built for Ubuntu 26.04, found ${PRETTY_NAME:-unknown}."
 [[ $(dpkg --print-architecture) == amd64 ]] || die "Only amd64 is supported."
@@ -205,6 +208,31 @@ if [[ -d $LAYER && ! -L $LAYER ]]; then
 else
   rm -rf "$LAYER"
   mv -T "$LAYER.new" "$LAYER"
+fi
+
+# ---- Omarchy migrations -------------------------------------------------------
+# The layer's omarchy-migrate runs the reviewed ones (layer/migrations.list) at Hyprland login. Here we only
+# mark what an install already has, in Omarchy's state directory, so a newer OMARCHY_REF runs just its new ones.
+MIGRATED=${OMARCHY_MIGRATION_STATE:-$HOME/.local/state/omarchy/migrations}
+# mark_done NAME...: names without .sh; only migrations the checkout has.
+mark_done() {
+  local name
+  mkdir -p "$MIGRATED"
+  for name; do
+    [[ -f $OMARCHY_PATH/migrations/$name.sh ]] && touch "$MIGRATED/$name.sh"
+  done
+  return 0
+}
+if [[ ! -d $MIGRATED ]]; then
+  if [[ -n $FRESH ]]; then
+    # Configs below are copied from this checkout, so they're current (Omarchy's own installer does the same).
+    mark_done $(basename -s .sh "$OMARCHY_PATH"/migrations/*.sh)
+  else
+    # Installed before omarchy-migrate ran migrations: its configs are at least as new as the first pinned
+    # Omarchy's. Newer migrations stay pending.
+    say "Marking Omarchy migrations up to the first pinned version as done"
+    mark_done $(grep -v '^#' "$LAYER/migrations.baseline")
+  fi
 fi
 
 # Superwhisper (dictation) is installed from its vendor when you pick it; bring it to the pinned version.
