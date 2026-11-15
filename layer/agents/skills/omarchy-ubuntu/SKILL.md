@@ -62,7 +62,7 @@ Ubuntu uses apt. There is no pacman, AUR, yay or paru here.
 - `omarchy pkg aur add` is not available. For software that isn't in Ubuntu's archive, prefer the vendor's apt repository or `.deb`, then Flathub. Ask before adding an apt repository: it is system-wide.
 - A few Arch names map to what Ubuntu installs (`~/.local/share/omarchy-ubuntu/lib/pkg-names.sh`): the browsers, and `superwhisper-bin`, which downloads Superwhisper (dictation) from its vendor into `/opt/superwhisper` and `/usr/local`. Pick dictation with **Setup > Defaults > Dictation** rather than installing it by hand.
 - To remove packages, use `omarchy pkg drop <names>`: it refuses to remove more than the packages named. (`omarchy pkg remove` is an interactive picker for the user.) Don't work around the refusal with `apt-get remove -y` or `apt autoremove`: GNOME may need what they would take.
-- `omarchy update` (**Update > Omarchy**) upgrades apt and Flatpak packages and updates omarchy-on-ubuntu on its channel. Omarchy itself stays at the pinned release: never `git pull` or check out another version in `$OMARCHY_PATH`. A newer Omarchy comes with a new omarchy-on-ubuntu release.
+- `omarchy update` (**Update > Omarchy**) upgrades apt and Flatpak packages, upgrades the tools mise installed (Omarchy's coding agents, and the user's own global mise tools too: it's a plain `mise up`), and updates omarchy-on-ubuntu on its channel. Omarchy itself stays at the pinned release: never `git pull` or check out another version in `$OMARCHY_PATH`. A newer Omarchy comes with a new omarchy-on-ubuntu release.
 
 ## Not available on Ubuntu
 
