@@ -78,6 +78,15 @@ localsend, Obsidian). Their menu entries work once you install them yourself. Sc
 wf-recorder instead of gpu-screen-recorder: it encodes on the CPU, and portal capture and `--resolution`
 need gpu-screen-recorder.
 
+## Changing it with an agent
+
+Omarchy's agent skills are set up for agents that read `~/.agents/skills`, and for Claude Code, Codex, Pi
+and Gemini if you have them (re-run `install.sh` after installing one),
+together with an `omarchy-ubuntu` skill that tells them how this setup differs from Arch Omarchy. Ask your
+agent to change the bar, keybindings, window rules or theme. If it makes a mess, `omarchy reinstall configs`
+puts Omarchy's defaults back for the Omarchy session (your versions are backed up under
+`~/.local/state/omarchy-ubuntu/`; it prints where). Apps GNOME shares, like Ghostty and btop, keep their configs.
+
 ## Contributing
 
 How it works, building the Hyprland package, releases and testing pull requests:

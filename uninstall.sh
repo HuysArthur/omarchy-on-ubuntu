@@ -43,6 +43,13 @@ if [[ -f $MANIFEST ]]; then
     mv "$path" "$ASIDE/$rel"
   done <"$MANIFEST"
 
+  # Folders install.sh created (for skill links), deepest first, if nothing else is in them now.
+  if [[ -f $STATE/dirs ]]; then
+    sort -r "$STATE/dirs" | while IFS= read -r dir; do
+      [[ -d $dir && ! -L $dir ]] && rmdir "$dir" 2>/dev/null || true
+    done
+  fi
+
   # Restore the oldest backup of each file, i.e. what was there before the first install.
   if [[ -d $STATE/backup ]]; then
     say "Restoring files that install.sh had replaced"
@@ -66,6 +73,12 @@ for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do
   cat "$tmp" >"$rc"
   rm -f "$tmp"
 done
+
+# Your versions from omarchy-reinstall-configs: not what was there before the install, so kept with the rest.
+if [[ -d $STATE/reset-backup ]]; then
+  mkdir -p "$ASIDE"
+  mv "$STATE/reset-backup" "$ASIDE/"
+fi
 
 # Launchers Remove > Preinstalls wrote to hide Omarchy's apps (layer/bin/omarchy-remove-preinstalls).
 for f in "$HOME"/.local/share/applications/*.desktop; do
