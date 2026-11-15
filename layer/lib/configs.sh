@@ -22,9 +22,19 @@ OWN_CONFIGS=(uwsm/env hypr/hyprland.lua dconf/hyprland.profile
 
 record() { mkdir -p "$STATE"; grep -qxF "$1" "$MANIFEST" 2>/dev/null || echo "$1" >>"$MANIFEST"; }
 
+# Which of the two a run backed up to (omarchy-reinstall-configs reports them).
+BACKED_UP=() RESET_BACKED_UP=()
+
 backup() {
   local rel=${1#"$HOME"/} root=$BACKUP
-  [[ -n $RESET_CONFIGS ]] && grep -qxF "$1" "$MANIFEST" 2>/dev/null && root=$RESET_BACKUP
+  # On a reset, a file we placed earlier holds your edits: those go to RESET_BACKUP. One we never placed (yours
+  # from before the install, which install.sh left alone) goes to BACKUP, so uninstall.sh puts it back.
+  if [[ -n $RESET_CONFIGS ]] && grep -qxF "$1" "$MANIFEST" 2>/dev/null; then
+    root=$RESET_BACKUP
+    RESET_BACKED_UP+=("$1")
+  else
+    BACKED_UP+=("$1")
+  fi
   mkdir -p "$root/$(dirname "$rel")"
   cp -a "$1" "$root/$rel"
 }

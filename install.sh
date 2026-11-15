@@ -54,6 +54,35 @@ forget() {
   done
 }
 
+# make_dir DIR: mkdir -p, recording in $STATE/dirs each folder it creates, so prune and uninstall.sh remove
+# exactly those (once they're empty) and never one you had.
+DIRS=$STATE/dirs
+make_dir() {
+  local dir=$1 new=()
+  while [[ $dir == "$HOME"/* && ! -e $dir && ! -L $dir ]]; do
+    new+=("$dir")
+    dir=$(dirname "$dir")
+  done
+  mkdir -p "$1" || return 1
+  mkdir -p "$STATE"
+  for dir in "${new[@]}"; do
+    grep -qxF "$dir" "$DIRS" 2>/dev/null || echo "$dir" >>"$DIRS"
+  done
+}
+
+# Remove the folders make_dir created that are empty now, deepest first.
+remove_empty_dirs() {
+  local dir keep
+  [[ -f $DIRS ]] || return 0
+  keep=$(mktemp)
+  while IFS= read -r dir; do
+    [[ -d $dir && ! -L $dir ]] || continue
+    rmdir "$dir" 2>/dev/null || echo "$dir" >>"$keep"
+  done < <(sort -r "$DIRS")
+  sort "$keep" >"$DIRS"
+  rm -f "$keep"
+}
+
 # Remove what the previous run managed and this one didn't, restoring what it had replaced.
 prune() {
   local path rel dir units=
@@ -72,13 +101,12 @@ prune() {
       for dir in $(ls -1d "$STATE"/backup/*/ 2>/dev/null | sort); do
         [[ -e $dir/$rel || -L $dir/$rel ]] && { cp -a "$dir/$rel" "$path"; break; }
       done
-      # Folders made just for a skill link (agents you don't have) go with it.
-      [[ $path != */skills/* ]] || (cd "$HOME" && rmdir -p --ignore-fail-on-non-empty "$(dirname "$rel")")
     else
       sudo rm -f "$path"
     fi
   done <"$MANAGED"
   [[ -z $units ]] || systemctl --user daemon-reload
+  remove_empty_dirs
 }
 
 # ---- preflight ----------------------------------------------------------------
@@ -258,9 +286,14 @@ done
 # Omarchy's skills teach coding agents how this desktop is put together (Hyprland, the bar, plugins, themes,
 # hooks) and how to diagnose a crash; omarchy-ubuntu tells them what differs here (apt instead of pacman, where
 # Omarchy lives, what GNOME shares). Linked where the agents look, as Omarchy's omarchy-provision-user does.
-# Hermes isn't set up on Ubuntu (Install > AI hides it), so its folders only get them if you have Hermes.
-skill_dirs=("$HOME/.agents/skills" "$HOME/.claude/skills" "$HOME/.codex/skills" "$HOME/.pi/agent/skills"
-  "$HOME/.gemini/config/skills")
+# ~/.agents/skills is the shared location; an agent's own folder only gets them when you have that agent (its
+# config folder exists), so no ~/.codex or ~/.gemini appears for agents you don't use. Re-run install.sh after
+# installing one.
+skill_dirs=("$HOME/.agents/skills")
+[[ -d $HOME/.claude ]] && skill_dirs+=("$HOME/.claude/skills")
+[[ -d $HOME/.codex ]] && skill_dirs+=("$HOME/.codex/skills")
+[[ -d $HOME/.pi ]] && skill_dirs+=("$HOME/.pi/agent/skills")
+[[ -d $HOME/.gemini ]] && skill_dirs+=("$HOME/.gemini/config/skills")
 if [[ -d $HOME/.hermes ]]; then
   skill_dirs+=("$HOME/.hermes/skills")
   for profile in "$HOME"/.hermes/profiles/*/; do
@@ -272,14 +305,18 @@ for skill in "$OMARCHY_PATH"/default/agents/skills/*/ "$LAYER"/agents/skills/*/;
   [[ -f $skill/SKILL.md ]] || continue
   for dir in "${skill_dirs[@]}"; do
     link=$dir/${skill##*/}
-    # A skill of yours by the same name stays, even where an earlier run linked ours; ours always links to the
-    # same place.
+    # A skill of yours by the same name stays. A link an earlier run made (recorded, and pointing into Omarchy
+    # or the layer) is ours, even when the skill has moved since, and is updated.
     if [[ -e $link || -L $link ]] && [[ $(readlink "$link") != "$skill" ]]; then
-      warn "Not linking the ${skill##*/} skill: $link already exists."
-      forget "$link"
-      continue
+      target=$(readlink "$link" || true)
+      if ! [[ -L $link && ( $target == "$OMARCHY_PATH"/* || $target == "$LAYER"/* ) ]] ||
+        ! grep -qxF "$link" "$MANIFEST" 2>/dev/null; then
+        warn "Not linking the ${skill##*/} skill: $link already exists."
+        forget "$link"
+        continue
+      fi
     fi
-    mkdir -p "$dir" || { warn "Not linking the ${skill##*/} skill: can't create $dir."; continue; }
+    make_dir "$dir" || { warn "Not linking the ${skill##*/} skill: can't create $dir."; continue; }
     ln -sfn "$skill" "$link"
     manage "$link"
   done

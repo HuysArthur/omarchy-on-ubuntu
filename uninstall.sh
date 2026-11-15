@@ -34,9 +34,14 @@ if [[ -f $MANIFEST ]]; then
     rel=${path#"$HOME"/}
     mkdir -p "$ASIDE/$(dirname "$rel")"
     mv "$path" "$ASIDE/$rel"
-    # Folders made just for a skill link (agents you don't have) go with it.
-    [[ $path != */skills/* ]] || (cd "$HOME" && rmdir -p --ignore-fail-on-non-empty "$(dirname "$rel")")
   done <"$MANIFEST"
+
+  # Folders install.sh created (for skill links), deepest first, if nothing else is in them now.
+  if [[ -f $STATE/dirs ]]; then
+    sort -r "$STATE/dirs" | while IFS= read -r dir; do
+      [[ -d $dir && ! -L $dir ]] && rmdir "$dir" 2>/dev/null || true
+    done
+  fi
 
   # Restore the oldest backup of each file, i.e. what was there before the first install.
   if [[ -d $STATE/backup ]]; then

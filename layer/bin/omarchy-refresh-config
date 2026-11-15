@@ -6,6 +6,14 @@
 # session without it. Those two come from omarchy-ubuntu's copy (install.sh puts it in the layer), and so do
 # omarchy/keyboard-layouts, hypr/input.lua and hypr/monitors.lua, which it generates for this machine (keyboard
 # layout and options, display scale). Every other file is Omarchy's, through Omarchy's own command.
+# Omarchy's command copies over the file in place, which writes through a symlink into its target (a dotfiles
+# repo). Move a link aside instead, as install.sh does: the link is the backup and its target stays as it is.
+user_file=$HOME/.config/${1:-}
+if [[ -n ${1:-} && -L $user_file ]]; then
+  mv "$user_file" "$user_file.bak.$(date +%s)"
+  echo "Moved your link $user_file aside to $user_file.bak.* (its target is unchanged)."
+fi
+
 case ${1:-} in
 hypr/hyprland.lua | hypr/input.lua | hypr/monitors.lua | omarchy/keyboard-layouts | uwsm/env)
   # Omarchy's command reads the default from $OMARCHY_PATH/config/<path>; point it at the layer's copy.

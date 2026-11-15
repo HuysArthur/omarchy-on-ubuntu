@@ -2,7 +2,8 @@
 # omarchy:summary=Reset Omarchy user configs to shipped defaults (backs up your versions)
 # Ubuntu version of Omarchy's command, which copies /etc/skel over your home. Here the shipped defaults are the
 # config files install.sh seeds for the Omarchy session: this puts Omarchy's (or omarchy-ubuntu's) default back for
-# each of them, and backs yours up to ~/.local/state/omarchy-ubuntu/reset-backup/<time>/ first. Apps GNOME shares
+# each of them, and backs yours up first: to ~/.local/state/omarchy-ubuntu/reset-backup/<time>/, or, for a file
+# you had before the install, to backup/<time>/, which uninstall.sh restores. Apps GNOME shares
 # (ghostty, btop, ...) and config files Omarchy doesn't ship are left alone.
 set -euo pipefail
 
@@ -20,4 +21,14 @@ for f in "${OWN_CONFIGS[@]}"; do
   put "$LAYER/config/$f" "$C/$f"
 done
 seed_configs
-echo "Done. Replaced files are in $RESET_BACKUP."
+# The speaker-tuning drop-in may have been put back.
+systemctl --user daemon-reload 2>/dev/null || true
+
+if ((${#RESET_BACKED_UP[@]} + ${#BACKED_UP[@]} == 0)); then
+  echo "Done. Everything was already at its default; nothing was replaced."
+  exit 0
+fi
+echo "Done."
+((${#RESET_BACKED_UP[@]} == 0)) || echo "Your versions of ${#RESET_BACKED_UP[@]} file(s) are in $RESET_BACKUP."
+# Files you had before the install (install.sh left them alone) are kept where uninstall.sh restores them from.
+((${#BACKED_UP[@]} == 0)) || echo "Your pre-install versions of ${#BACKED_UP[@]} file(s) are in $BACKUP."
