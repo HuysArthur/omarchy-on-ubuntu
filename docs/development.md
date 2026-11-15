@@ -59,8 +59,10 @@ Details for people changing this project. Users only need the [README](../README
   keeps its own: `MISE_DATA_DIR` is `~/.local/state/omarchy-ubuntu/mise`, while `MISE_INSTALLS_DIR`,
   `MISE_DOWNLOADS_DIR` and `MISE_PLUGINS_DIR` point at your usual mise folders (honouring `MISE_DATA_DIR` and
   `XDG_DATA_HOME`), so installs are shared. Otherwise a `mise use` in GNOME would delete the agents' shims, and
-  GNOME would get shims for tools it has no version of. It puts the wrappers first and the shims after the
-  system's on PATH. `install.sh` creates the shims as Omarchy's `install/user/mise.sh` does (`mise
+  GNOME would get shims for tools it has no version of. Omarchy's config puts the lazy tools' shims in
+  `system_shims_dir`, `~/.local/share/mise/shims` (on Arch that's on PATH; here it's GNOME's), so
+  `MISE_SYSTEM_SHIMS_DIR` overrides it with `system-shims` in the session's folder. It puts the wrappers first
+  and both shim folders after the system's on PATH. `install.sh` creates the shims as Omarchy's `install/user/mise.sh` does (`mise
   reshim --system`, then `mise reshim`). An agent you installed yourself in `~/.local/bin` (Claude Code's native
   installer, say) comes first on PATH, where Ubuntu's `~/.profile` puts that folder. That makes **Setup >
   Defaults > Agent**, `omarchy agent`, `omarchy agent prompt` and Super+Shift+Ctrl+A work. `omarchy-update` runs
@@ -71,9 +73,9 @@ Details for people changing this project. Users only need the [README](../README
   can't be installed, the install carries on without it (and removes the PPA only if it added it).
   `uninstall.sh` leaves mise and what it installed, and removes the session's shims with the rest of
   `~/.local/state/omarchy-ubuntu`. An earlier version of this branch put a launcher per agent in `~/.local/bin`
-  and the shims in mise's own folders: `install.sh` removes the launchers that are still Omarchy's (`mise use
-  -g` scripts), leaving one an agent's installer has since replaced, and rebuilds mise's own shims once from
-  your config alone. `omarchy-update` sets up herdr's integrations after updating the layer.
+  and the shims in mise's own folders (later only the lazy tools' shims, through Omarchy's `system_shims_dir`):
+  `install.sh` removes the launchers that are still Omarchy's (`mise use -g` scripts), leaving one an agent's
+  installer has since replaced, and rebuilds mise's own shims once from your config alone. `omarchy-update` sets up herdr's integrations after updating the layer.
 - **herdr integration for agents**: `omarchy-ubuntu-herdr-integrations` runs `herdr integration install` for
   each of Omarchy's agents whose config folder exists (it has been run once), however it was installed; Omarchy
   doesn't set this up itself. `install.sh` and `omarchy-update` run it; an integration you installed yourself is

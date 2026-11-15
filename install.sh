@@ -418,13 +418,14 @@ if command -v mise >/dev/null; then
   if [[ -z $mise_version || $(printf '%s\n' "$MISE_MINIMUM" "$mise_version" | sort -V | head -1) != "$MISE_MINIMUM" ]]; then
     warn "mise ${mise_version:-(unknown version)} is older than $MISE_MINIMUM, which Omarchy's coding agents need. Update it (sudo apt upgrade mise, or mise self-update)."
   fi
-  # An earlier version of this put the agents' shims and wrappers in mise's own folders, which GNOME uses too.
-  # Rebuild those once from your own mise config alone, which drops ours.
-  if [[ ! -d $STATE/mise ]]; then
+  # Earlier versions of this put the agents' shims and wrappers in mise's own folders, which GNOME uses too: all
+  # of them at first, then the lazy tools' system shims (Omarchy's system_shims_dir, before MISE_SYSTEM_SHIMS_DIR
+  # in config/uwsm/env). Rebuild those once from your own mise config alone, which drops ours.
+  if [[ ! -d $STATE/mise/system-shims ]]; then
     mise_shared=$(dirname "${MISE_INSTALLS_DIR:-${MISE_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/mise}/installs}")
     if [[ -d $mise_shared/command-wrappers || -d $mise_shared/shims ]]; then
-      env -u MISE_SYSTEM_CONFIG_DIR -u OMARCHY_MISE_CONFIG_PATH -u MISE_INSTALLS_DIR -u MISE_DOWNLOADS_DIR \
-        -u MISE_PLUGINS_DIR MISE_DATA_DIR="$mise_shared" MISE_OFFLINE=true mise reshim >/dev/null 2>&1 || true
+      env -u MISE_SYSTEM_CONFIG_DIR -u MISE_SYSTEM_SHIMS_DIR -u OMARCHY_MISE_CONFIG_PATH -u MISE_INSTALLS_DIR \
+        -u MISE_DOWNLOADS_DIR -u MISE_PLUGINS_DIR MISE_DATA_DIR="$mise_shared" MISE_OFFLINE=true mise reshim >/dev/null 2>&1 || true
     fi
   fi
   say "Setting up Omarchy's coding agents (mise shims)"
