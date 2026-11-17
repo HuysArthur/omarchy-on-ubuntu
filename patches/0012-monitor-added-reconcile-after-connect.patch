@@ -1,0 +1,21 @@
+diff --git i/default/hypr/monitor-workspaces.lua w/default/hypr/monitor-workspaces.lua
+index 75c8a4f24..17605b0d3 100644
+--- i/default/hypr/monitor-workspaces.lua
++++ w/default/hypr/monitor-workspaces.lua
+@@ -688,8 +688,15 @@ hl.on("config.reloaded", function()
+   M.reconcile()
+ end)
+ 
++-- Hyprland reports a new monitor from inside its connect, before the monitor can
++-- be rendered to. Moving focus there pulls in the monitor's render resources, and
++-- when the session isn't active yet (a dock seen while waking from suspend) that
++-- aborts Hyprland. Reconcile once the connect has returned and the session is back.
+ hl.on("monitor.added", function(monitor)
+-  M.reconcile(monitor and monitor.name)
++  local name = monitor and monitor.name
++  hl.timer(function()
++    M.reconcile(name)
++  end, { type = "oneshot", timeout = 1000 })
+ end)
+ 
+ -- Hyprland reports the removal from inside the monitor's teardown, where moving

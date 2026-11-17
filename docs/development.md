@@ -108,7 +108,9 @@ Details for people changing this project. Users only need the [README](../README
   (which installs a browser it doesn't find) and `omarchy-remove-browser`, the titlebars plugin's path under
   `/opt/hyprland`, Superwhisper's paths under `/usr/local`, a note at the top of Omarchy's agent skills that
   sends agents to the Ubuntu skill, and `omarchy <command>` looking commands up on PATH, so it reaches the
-  layer's versions for routing, help and the metadata check (upstream it only uses the ones next to it).
+  layer's versions for routing, help and the metadata check (upstream it only uses the ones next to it), and
+  workspaces being moved to a newly connected monitor a second after it connects rather than from inside the
+  connect (a dock seen while waking from suspend, before the session is active again, otherwise aborts Hyprland).
 - **Agent skills**: Omarchy's skills (`omarchy` for changing the desktop, `omarchy-app` for building apps,
   `diagnose-crash`) and the layer's `omarchy-ubuntu` skill (`layer/agents/skills/`) are linked into
   `~/.agents/skills`, and into `~/.claude/skills`, `~/.codex/skills`, `~/.pi/agent/skills`,
