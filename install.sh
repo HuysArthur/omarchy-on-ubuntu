@@ -122,8 +122,25 @@ prune() {
 # shellcheck disable=SC1091
 . "$REPO/build/versions.env"
 pkg_version=${HYPRLAND_TAG#v}-$PKG_REVISION
-# A local build (./build.sh: "~ubuntu") or an earlier download ("_ubuntu") of the pinned version.
-DEB=${1:-$(ls -t "$REPO"/dist/hyprland-opt_"$pkg_version"[~_]ubuntu26.04_amd64.deb 2>/dev/null | head -1 || true)}
+# What build/ holds; same as build_hash in build.sh.
+build_hash() {
+  (cd "$REPO" && find build -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum) | sha256sum | cut -d' ' -f1
+}
+# A local build (./build.sh: "~ubuntu") or an earlier download ("_ubuntu") of the pinned version, if its
+# stamp says it came from this build/. A version number alone doesn't say that: a branch's build and the
+# release built after its last change share one.
+DEB=${1:-}
+if [[ -z $DEB ]]; then
+  hash=$(build_hash)
+  mapfile -t candidates < <(ls -t "$REPO"/dist/hyprland-opt_"$pkg_version"[~_]ubuntu26.04_amd64.deb 2>/dev/null)
+  for candidate in "${candidates[@]}"; do
+    if [[ $(cat "$candidate.build" 2>/dev/null) == "$hash" ]]; then
+      DEB=$candidate
+      break
+    fi
+    say "Skipping $(basename "$candidate"): not built from this build/"
+  done
+fi
 if [[ -z $DEB ]]; then
   # No local build: fetch the prebuilt package from this repo's GitHub release.
   origin=$(git -C "$REPO" remote get-url origin 2>/dev/null || true)
@@ -141,6 +158,9 @@ if [[ -z $DEB ]]; then
       "https://github.com/$slug/releases/download/hyprland-opt-$pkg_version/$(basename "$DEB")"
   fi || die "Download failed (private repo? install gh and run gh auth login). Or build with ./build.sh, or copy the .deb over and pass its path."
   mv "$DEB.part" "$DEB"
+  # The release for this version is what this build/ installs, so the download stands in for it until
+  # build/ changes (a branch's pre-release is rebuilt then).
+  echo "$hash" >"$DEB.build"
 fi
 [[ -f $DEB ]] || die "$DEB not found."
 DEB=$(realpath "$DEB")
