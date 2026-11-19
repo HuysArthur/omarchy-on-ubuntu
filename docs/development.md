@@ -185,7 +185,10 @@ tag's `flake.lock`.
 Local fixes to a source go in `build/patches/<name>/*.patch` (`<name>` as passed to `fetch`, e.g.
 `Hyprland`); they're applied in order after checkout. Check they still apply, or drop them, when bumping.
 
-`install.sh` uses the newest `.deb` in `dist/`, or a path you pass it, before falling back to the release.
+`install.sh` uses a path you pass it, or the newest `.deb` in `dist/` built from the `build/` it's run
+with, before falling back to the release. `build.sh` and the download stamp each `.deb` with a hash of
+`build/` (`<deb>.build`); one without a matching stamp is skipped, since an older build of the same version
+(a branch built before its last change, say) would otherwise be installed in place of the fixed one.
 
 ## Releases
 
