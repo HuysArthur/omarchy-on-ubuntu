@@ -164,6 +164,8 @@ workflow.
   (`/usr/local/libexec/omarchy-dns` plus `/etc/sudoers.d/omarchy-ubuntu-dns`, so Cloudflare/Google/DHCP switch
   without a password). DNS is system-wide, so a preset picked in Hyprland applies under GNOME too. It also
   adds mise's PPA to apt's sources, and like the apt packages it installs, that stays after uninstalling.
+- The Hyprland package links `/usr/bin/gliff-server` to its copy in `/opt/hyprland/bin`: Gliff starts the
+  server with `ssh host gliff-server`, and that non-interactive shell only searches the system PATH.
 - `omarchy-pkg-drop` refuses to remove anything beyond the packages it was asked for (pacman's `-Rns` refuses
   the same way; `apt-get remove -y` would take the dependents along).
 - `install.sh` only creates config files you don't have yet, except `~/.config/hypr/hyprland.lua` and

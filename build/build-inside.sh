@@ -192,6 +192,11 @@ rm -rf "$R/include" "$R/lib/pkgconfig" "$R/share/pkgconfig" "$R/lib/cmake" \
        "$R/share/wayland-sessions" "$R/share/wayland-protocols" "$R/share/hyprland-protocols"
 find "$R/lib" -name '*.a' -delete
 
+# `gliff user@host` runs `ssh host gliff-server`, a non-interactive shell with only the system PATH, so the
+# server goes there too. The app's launcher stays in /opt/hyprland/share, so only the session shows it.
+mkdir -p "$STAGE/usr/bin"
+ln -s "$PREFIX/bin/gliff-server" "$STAGE/usr/bin/gliff-server"
+
 cat > "$R/bin/hyprland-session" <<'EOF'
 #!/bin/sh
 # Login entry point for the "Hyprland (Omarchy)" session. Per-user environment lives in ~/.config/uwsm/env.
