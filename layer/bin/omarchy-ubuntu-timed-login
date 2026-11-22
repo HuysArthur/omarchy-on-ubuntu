@@ -1,0 +1,151 @@
+#!/bin/bash
+# Timed login: after a boot, the login screen counts down and then logs you into Hyprland (Omarchy) without a
+# password, so the session is running even when nobody is at the machine (Gliff, for one, needs a running
+# session on the computer it connects to). Until the countdown ends you can still pick Ubuntu (GNOME).
+#
+# Omarchy on Arch logs in automatically too, and relies on disk encryption for the password: you type it at
+# boot. When / isn't on an encrypted disk, the session locks the screen as soon as the Omarchy shell is up
+# after a timed login, so the password moves to the lock screen instead of disappearing.
+#
+#   omarchy-ubuntu-timed-login on [SECONDS]  turn it on for you, with a 10 second countdown by default (sudo)
+#   omarchy-ubuntu-timed-login off           turn it off (sudo; uninstall.sh does this too)
+#   omarchy-ubuntu-timed-login status
+#   omarchy-ubuntu-timed-login startup       at Hyprland start (layer/lua/hypr.lua): the lock described above
+#
+# GDM has no drop-in folder, so the settings go in /etc/gdm3/custom.conf, between marker lines right after
+# [daemon]. GDM reads that file when it starts: a change applies from the next boot.
+set -euo pipefail
+
+CONF=/etc/gdm3/custom.conf
+BEGIN='# BEGIN omarchy-ubuntu timed login (omarchy-ubuntu-timed-login off removes this block)'
+END='# END omarchy-ubuntu timed login'
+SESSION=hyprland-opt
+
+die() { echo "omarchy-ubuntu-timed-login: $*" >&2; exit 1; }
+
+enabled() { grep -qxF "$BEGIN" "$CONF" 2>/dev/null; }
+
+# True when / is on a dm-crypt (LUKS) device, directly or under LVM. A root lsblk can't trace (ZFS, say)
+# counts as not encrypted, so it gets the lock.
+root_encrypted() {
+  local src
+  src=$(findmnt -nvo SOURCE /) || return 1
+  lsblk -nso TYPE "$src" 2>/dev/null | grep -qx crypt
+}
+
+# custom.conf without our block.
+without_block() {
+  B=$BEGIN E=$END awk '$0 == ENVIRON["B"] { skip = 1; next } skip && $0 == ENVIRON["E"] { skip = 0; next } !skip' "$CONF"
+}
+
+install_conf() {
+  sudo install -m 0644 -o root -g root "$1" "$CONF"
+}
+
+# The session GDM logs you into: the last one you picked, kept by AccountsService.
+user_object() {
+  busctl call --system org.freedesktop.Accounts /org/freedesktop/Accounts org.freedesktop.Accounts \
+    FindUserById x "$(id -u)" | sed -nE 's/^o "(.*)"$/\1/p'
+}
+
+current_session() {
+  local obj
+  obj=$(user_object) && [[ -n $obj ]] || return 0
+  busctl get-property --system org.freedesktop.Accounts "$obj" org.freedesktop.Accounts.User Session |
+    sed -nE 's/^s "(.*)"$/\1/p'
+}
+
+cmd_on() {
+  local delay=${1:-10} obj tmp block
+  [[ $delay =~ ^[0-9]+$ ]] && delay=$((10#$delay)) && ((delay >= 1)) ||
+    die "the countdown is a number of seconds, like 10"
+  [[ -f $CONF ]] || die "$CONF not found. Timed login needs GDM, Ubuntu's login screen."
+  [[ -f /usr/share/wayland-sessions/$SESSION.desktop ]] ||
+    die "the Hyprland (Omarchy) session isn't installed; run install.sh first"
+  # Login settings of your own would leave GDM with each key twice.
+  if without_block | grep -qE '^[[:space:]]*(AutomaticLogin|TimedLogin)'; then
+    die "$CONF already sets up automatic or timed login. Remove those lines first."
+  fi
+
+  block="$BEGIN
+TimedLoginEnable=true
+TimedLogin=$(id -un)
+TimedLoginDelay=$delay
+$END"
+  tmp=$(mktemp)
+  without_block | BLOCK=$block awk '
+    { print }
+    !done && /^\[daemon\][[:space:]]*$/ { print ENVIRON["BLOCK"]; done = 1 }
+    END { if (!done) { print ""; print "[daemon]"; print ENVIRON["BLOCK"] } }' >"$tmp"
+  install_conf "$tmp"
+  rm -f "$tmp"
+
+  # Start from Hyprland (Omarchy), whatever you picked last.
+  obj=$(user_object)
+  [[ -n $obj ]] || die "AccountsService doesn't know your account; pick Hyprland (Omarchy) once on the login screen"
+  sudo busctl call --system org.freedesktop.Accounts "$obj" org.freedesktop.Accounts.User SetSession s "$SESSION"
+
+  echo "Timed login is on from the next boot: the login screen logs you into Hyprland (Omarchy) after ${delay}s."
+  echo "Before that, click your name and use the gear icon to pick Ubuntu instead. That choice sticks: the"
+  echo "countdown then logs into GNOME until you pick Hyprland (Omarchy) again."
+  if ! root_encrypted; then
+    echo
+    echo "Your disk isn't encrypted, so anyone who switches this computer on would get your desktop. The Omarchy"
+    echo "session locks the screen right after a timed login; you unlock it with your password. Omarchy is meant"
+    echo "to run on an encrypted disk: Ubuntu's installer sets that up, but only when (re)installing."
+  fi
+}
+
+cmd_off() {
+  local tmp
+  if ! enabled; then
+    echo "Timed login is off."
+    return 0
+  fi
+  tmp=$(mktemp)
+  without_block >"$tmp"
+  install_conf "$tmp"
+  rm -f "$tmp"
+  echo "Timed login is off from the next boot."
+}
+
+cmd_status() {
+  local delay
+  if enabled; then
+    delay=$(B=$BEGIN E=$END awk -F= '$0 == ENVIRON["B"] { in_block = 1 } in_block && $1 == "TimedLoginDelay" { print $2 } $0 == ENVIRON["E"] { in_block = 0 }' "$CONF")
+    echo "Timed login: on, after ${delay:-?}s"
+  else
+    echo "Timed login: off"
+  fi
+  echo "Session it logs into: $(current_session || true)"
+  if root_encrypted; then
+    echo "Disk: encrypted"
+  else
+    echo "Disk: not encrypted (the screen locks after a timed login)"
+  fi
+}
+
+cmd_startup() {
+  enabled || return 0
+  root_encrypted && return 0
+  # GDM's timed and automatic logins use the gdm-autologin PAM service; a password login uses gdm-password.
+  # This runs from a uwsm-app unit, outside the login session, so "auto" means your graphical session.
+  [[ $(loginctl show-session auto -p Service --value 2>/dev/null) == gdm-autologin ]] || return 0
+
+  # The lock is drawn by the Omarchy shell, which starts alongside this.
+  local deadline=$((SECONDS + 60))
+  until OMARCHY_SHELL_IPC_TIMEOUT=0.5s omarchy-shell shell ping >/dev/null 2>&1; do
+    ((SECONDS < deadline)) || die "the Omarchy shell didn't start, so the screen isn't locked"
+    sleep 0.1
+  done
+  echo "Timed login on a disk that isn't encrypted: locking the screen"
+  omarchy-system-lock
+}
+
+case ${1:-} in
+  on) shift; cmd_on "$@" ;;
+  off) cmd_off ;;
+  status) cmd_status ;;
+  startup) cmd_startup ;;
+  *) die "usage: omarchy-ubuntu-timed-login on [SECONDS] | off | status" ;;
+esac

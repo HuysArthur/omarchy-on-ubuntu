@@ -28,6 +28,32 @@ Omarchy's own apps come with it, as on Arch: Omacalc, Omawrite, Omacut, Hype, Mo
 cliamp, Disktree and Gliff. They only appear in the Omarchy session. **Remove > Preinstalls** hides the
 preinstalled ones and turns off their shortcuts; **Install > Preinstalls** brings them back.
 
+## Logging in automatically
+
+Omarchy on Arch logs you in without asking for a password. It relies on disk encryption instead: the one
+password you type is the disk's, at boot. You can do the same here with timed login:
+
+```bash
+~/.local/share/omarchy-ubuntu/bin/omarchy-ubuntu-timed-login on
+```
+
+(In the Omarchy session, `omarchy-ubuntu-timed-login on` is enough.) From the next boot, the login screen counts
+down 10 seconds (`on 30` for longer) and then logs you into Omarchy. Before that, you can still pick Ubuntu with
+the gear icon, and logging out brings the normal login screen back. Remote access needs this: Gliff shows a
+running Omarchy session, it doesn't start one. `omarchy-ubuntu-timed-login off` turns it off, and `status`
+shows what's set.
+
+- **Encrypt your disk.** Without encryption, anyone who switches the computer on gets your desktop, so the Omarchy
+  session locks the screen right after a timed login and you unlock it with your password (over Gliff too).
+  Ubuntu's installer sets up encryption ("Use LVM and encryption", or hardware-backed encryption); it can't be
+  added to an existing install.
+- A disk that unlocks itself at boot (hardware-backed encryption without a PIN or passphrase) counts as
+  encrypted, but it doesn't keep out someone who switches the computer on. Add a PIN.
+- With a disk password, a computer that restarts waits for it before its network is up, so you can't reach it
+  remotely until someone types it.
+- The login screen remembers the session you pick: after you choose Ubuntu, the countdown logs into GNOME until
+  you choose Hyprland (Omarchy) again.
+
 ## Update
 
 Use **Update > Omarchy** in the menu, or run `omarchy-update`. It upgrades your apt packages and everything mise installed

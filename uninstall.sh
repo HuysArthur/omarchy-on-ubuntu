@@ -16,6 +16,13 @@ if [[ -x $LAYER/bin/omarchy-ubuntu-herdr-integrations ]]; then
   "$LAYER/bin/omarchy-ubuntu-herdr-integrations" --remove
 fi
 
+# Timed login (omarchy-ubuntu-timed-login on): its block in /etc/gdm3/custom.conf, before the session it logs into goes.
+if [[ -x $LAYER/bin/omarchy-ubuntu-timed-login ]] &&
+  grep -q '^# BEGIN omarchy-ubuntu timed login' /etc/gdm3/custom.conf 2>/dev/null; then
+  say "Turning timed login off (sudo)"
+  "$LAYER/bin/omarchy-ubuntu-timed-login" off
+fi
+
 if dpkg-query -W -f='${db:Status-Abbrev}' hyprland-opt 2>/dev/null | grep -q '^ii'; then
   say "Removing the hyprland-opt package (sudo)"
   sudo apt-get remove -y hyprland-opt

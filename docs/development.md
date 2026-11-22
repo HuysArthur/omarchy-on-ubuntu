@@ -164,6 +164,12 @@ workflow.
   (`/usr/local/libexec/omarchy-dns` plus `/etc/sudoers.d/omarchy-ubuntu-dns`, so Cloudflare/Google/DHCP switch
   without a password). DNS is system-wide, so a preset picked in Hyprland applies under GNOME too. It also
   adds mise's PPA to apt's sources, and like the apt packages it installs, that stays after uninstalling.
+- Timed login is opt-in (`layer/bin/omarchy-ubuntu-timed-login on`, never run by `install.sh`). GDM has no
+  drop-in folder, so it writes a marked block right after `[daemon]` in `/etc/gdm3/custom.conf` (a gdm3
+  conffile: an upgrade that changes it asks which version to keep), and sets your AccountsService session to
+  `hyprland-opt`. It refuses when that file already has automatic or timed login of your own. `off` and
+  `uninstall.sh` remove only the block. At Hyprland start (`layer/lua/hypr.lua`), the same command locks the
+  screen when the login was GDM's `gdm-autologin` and `/` isn't on a dm-crypt device.
 - `omarchy-pkg-drop` refuses to remove anything beyond the packages it was asked for (pacman's `-Rns` refuses
   the same way; `apt-get remove -y` would take the dependents along).
 - `install.sh` only creates config files you don't have yet, except `~/.config/hypr/hyprland.lua` and
