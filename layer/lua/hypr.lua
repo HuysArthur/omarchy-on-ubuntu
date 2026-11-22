@@ -25,3 +25,7 @@ o.launch_on_start("systemd-cat -t omarchy-idle-inhibit-bridge omarchy-idle-inhib
 -- config, so run them quietly.
 o.launch_on_start("systemd-cat -t omarchy-migrate omarchy-migrate")
 
+-- Timed login (omarchy-ubuntu-timed-login) on a disk that isn't encrypted: lock the screen once the shell is up.
+-- Does nothing after a password login, or when timed login is off.
+o.launch_on_start("systemd-cat -t omarchy-ubuntu-timed-login omarchy-ubuntu-timed-login startup")
+
